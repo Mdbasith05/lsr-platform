@@ -1,6 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
+import Link from "next/link";
+import {
+  IconScale,
+  IconShield,
+  IconBriefcase,
+  IconArrowRight,
+  IconCheckCircle,
+} from "@/components/icons";
 
 interface HealthResponse {
   status: string;
@@ -10,178 +18,200 @@ interface HealthResponse {
   timestamp: string;
 }
 
-export default function Home() {
+export default function RootHomePage() {
   const [healthData, setHealthData] = useState<HealthResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingHealth, setLoadingHealth] = useState(false);
+  const [healthError, setHealthError] = useState<string | null>(null);
 
   const checkBackendHealth = async () => {
-    setLoading(true);
-    setError(null);
+    setLoadingHealth(true);
+    setHealthError(null);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
       const res = await fetch(`${apiUrl}/health`);
-      if (!res.ok) {
-        throw new Error(`Server returned HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: HealthResponse = await res.json();
       setHealthData(data);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to reach backend server";
-      setError(`${message}. Ensure the FastAPI server is running at http://localhost:8000`);
+      const msg = err instanceof Error ? err.message : "Backend unreachable";
+      setHealthError(`${msg}. Ensure FastAPI server is running on http://localhost:8000`);
     } finally {
-      setLoading(false);
+      setLoadingHealth(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Top Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-[#F4F7FB] flex flex-col font-sans text-[#10233F]">
+      {/* Navigation Header */}
+      <header className="border-b border-slate-200 bg-white/90 backdrop-blur sticky top-0 z-30 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white shadow-md shadow-indigo-500/20">
-            LSR
+          <div className="w-10 h-10 rounded-xl bg-[#10233F] flex items-center justify-center text-white shadow-md shadow-slate-900/10">
+            <IconScale className="w-6 h-6 text-[#356AE6]" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold tracking-tight text-white">
-              Legal Scrutiny Report Platform
+            <h1 className="text-base font-bold tracking-tight text-[#10233F]">
+              Legal Scrutiny Report (LSR) Platform
             </h1>
-            <p className="text-xs text-slate-400">
-              Property Document Verification &amp; Bank Loan Processing
+            <p className="text-[11px] text-slate-500 font-medium">
+              Property Document Verification &amp; Bank Title Scrutiny
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            Milestone 0: Scaffolded
-          </span>
+
+        <div className="flex items-center space-x-3">
+          <Link
+            href="/login"
+            className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+          >
+            Chamber Login
+          </Link>
+          <Link
+            href="/dashboard"
+            className="px-4 py-2 rounded-lg bg-[#356AE6] hover:bg-[#2655C4] text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5"
+          >
+            <span>Open Dashboard</span>
+            <IconArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </header>
 
-      {/* Main Body */}
-      <main className="flex-1 max-w-5xl w-full mx-auto p-6 md:p-10 space-y-8">
+      {/* Hero Section */}
+      <main className="flex-1 max-w-5xl w-full mx-auto p-6 md:p-12 space-y-10">
         {/* Compliance Notice */}
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200 flex items-start gap-3">
-          <span className="text-lg">🛡️</span>
-          <div>
-            <strong className="font-semibold">Confidentiality &amp; Compliance Sandbox:</strong>
-            <p className="text-amber-200/80 text-xs mt-0.5">
-              Strict tenant isolation and private document storage enforced. No real borrower documents or production secrets are used during development. AI findings will be evidence-linked with lawyer final sign-off authority.
+        <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-900 flex items-start gap-3">
+          <IconShield className="w-5 h-5 text-[#356AE6] flex-shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <strong className="font-semibold text-[#10233F]">
+              Statutory Bank Scrutiny Standards • Advocate-in-the-Loop Architecture:
+            </strong>
+            <p className="text-blue-900/80 leading-relaxed text-[11px]">
+              AI models perform text extraction, classification, and cross-document discrepancy indexing. All legal conclusions, query formulations, and final opinion certificates remain under the exclusive professional authority of the empaneled advocate.
             </p>
           </div>
         </div>
 
-        {/* Hero Section */}
-        <div className="space-y-3">
-          <h2 className="text-3xl font-bold tracking-tight text-slate-50">
-            AI-Powered Legal Verification Platform
+        {/* Hero Title & Primary Entry Points */}
+        <div className="text-center max-w-2xl mx-auto space-y-4">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#356AE6] border border-blue-200">
+            Empaneled Legal SaaS Portal
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#10233F]">
+            AI-Assisted Property Document Scrutiny for Bank Loans
           </h2>
-          <p className="text-slate-400 max-w-2xl text-sm leading-relaxed">
-            Welcome to the developer workbench. Frontend and Backend are set up as independent, modular services inside the monorepo.
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Accelerate title chain verification, identify boundary discrepancies, draft targeted bank requisitions, and generate formatted Draft LSR opinions with grounded evidence citations.
           </p>
-        </div>
-
-        {/* Team Role & Architecture Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Project Lead Card */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-100 flex items-center gap-2">
-                <span className="text-indigo-400">●</span> Project Lead Workspace
-              </h3>
-              <span className="text-xs font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">
-                /frontend
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Next.js 16, TypeScript, Tailwind CSS, shadcn/ui foundation. Manages Case intake, split-screen PDF evidence viewer, query review, and LSR report generation.
-            </p>
-            <div className="pt-2 border-t border-slate-800 text-xs text-slate-300 flex items-center justify-between">
-              <span>Next.js App Router:</span>
-              <span className="text-emerald-400 font-medium">Ready</span>
-            </div>
-          </div>
-
-          {/* Teammate Card */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-100 flex items-center gap-2">
-                <span className="text-emerald-400">●</span> Teammate Workspace
-              </h3>
-              <span className="text-xs font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">
-                /backend
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              FastAPI, PyMuPDF, pluggable OCR, and provider-agnostic Gemini AI service. Manages extraction, discrepancy cross-checks, and bank query drafting.
-            </p>
-            <div className="pt-2 border-t border-slate-800 text-xs text-slate-300 flex items-center justify-between">
-              <span>FastAPI Scrutiny Service:</span>
-              <span className="text-emerald-400 font-medium">Ready</span>
-            </div>
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/login"
+              className="px-6 py-3 rounded-xl bg-[#10233F] hover:bg-[#152e52] text-white text-xs font-bold shadow-md transition-all flex items-center gap-2"
+            >
+              <span>Login to Chamber Portal</span>
+              <IconArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/dashboard"
+              className="px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-xs font-bold shadow-xs transition-all flex items-center gap-2"
+            >
+              <IconBriefcase className="w-4 h-4 text-[#356AE6]" />
+              <span>Explore Demo Dashboard</span>
+            </Link>
           </div>
         </div>
 
-        {/* Backend Connectivity & Health Check Tool */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6 space-y-4">
+        {/* 4-Step Legal Verification Workflow Cards */}
+        <div className="space-y-4">
+          <div className="text-center">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              End-to-End Scrutiny Workflow
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#356AE6] flex items-center justify-center font-bold text-xs">
+                1
+              </div>
+              <h4 className="font-bold text-xs text-[#10233F]">Intake &amp; Ingestion</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Register property schedule, survey numbers, and ingest multi-page title deeds, prior link mother deeds, and ECs.
+              </p>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-[#356AE6] flex items-center justify-center font-bold text-xs">
+                2
+              </div>
+              <h4 className="font-bold text-xs text-[#10233F]">Extraction &amp; Indexing</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                PyMuPDF parses pages, extracts text density, and indexes clauses to provide grounded coordinate citations.
+              </p>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
+                3
+              </div>
+              <h4 className="font-bold text-xs text-[#10233F]">Discrepancy Scrutiny</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Interactive split-screen viewer links flagged boundary variances and EC gaps directly to highlighted source pages.
+              </p>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#16805D] flex items-center justify-center font-bold text-xs">
+                4
+              </div>
+              <h4 className="font-bold text-xs text-[#10233F]">Queries &amp; LSR Draft</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Formulate official requisitions for the bank manager and compile a formatted Draft Legal Scrutiny Report.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Developer Sandbox & Backend Health Test Card */}
+        <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-6 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-slate-100">Backend Connectivity Check</h3>
-              <p className="text-xs text-slate-400">
-                Verify that the Next.js frontend can communicate with the Python FastAPI health check endpoint.
+              <h3 className="font-bold text-xs text-[#10233F]">
+                Backend Health &amp; Integration Diagnostics
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                Ping the Python FastAPI server at <code className="font-mono text-[#356AE6]">http://localhost:8000/health</code>
               </p>
             </div>
             <button
               onClick={checkBackendHealth}
-              disabled={loading}
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-medium transition-colors shadow-sm shadow-indigo-600/30 flex items-center justify-center gap-2"
+              disabled={loadingHealth}
+              className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1.5"
             >
-              {loading ? "Checking..." : "Ping Backend Health (/health)"}
+              {loadingHealth ? "Checking..." : "Ping Backend Health"}
             </button>
           </div>
 
           {healthData && (
-            <div className="rounded-lg bg-emerald-950/40 border border-emerald-500/30 p-4 space-y-2">
-              <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
-                <span>✓</span> Backend Connected Successfully
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-[#16805D] space-y-1">
+              <div className="font-bold flex items-center gap-1">
+                <IconCheckCircle className="w-4 h-4" />
+                <span>Backend Connected Successfully</span>
               </div>
-              <pre className="text-xs font-mono text-emerald-200/90 bg-emerald-950/60 p-3 rounded overflow-x-auto">
+              <pre className="font-mono text-[10px] bg-white p-2 rounded border border-emerald-200 overflow-x-auto text-slate-800">
                 {JSON.stringify(healthData, null, 2)}
               </pre>
             </div>
           )}
 
-          {error && (
-            <div className="rounded-lg bg-rose-950/40 border border-rose-500/30 p-4 space-y-1">
-              <div className="flex items-center gap-2 text-rose-400 text-xs font-semibold">
-                <span>✕</span> Connection Failed
-              </div>
-              <p className="text-xs text-rose-200/80">{error}</p>
+          {healthError && (
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700">
+              <strong>Connection Status:</strong> {healthError}
             </div>
           )}
-        </div>
-
-        {/* Next Milestones Guide */}
-        <div className="rounded-xl border border-slate-800/80 bg-slate-900/20 p-5 space-y-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Roadmap Sequence
-          </h4>
-          <ol className="text-xs text-slate-400 space-y-1.5 list-decimal list-inside">
-            <li className="text-slate-200 font-medium">Milestone 0: Monorepo Scaffolding (Current)</li>
-            <li>Milestone 1: Supabase Database Schema, Tenant RLS &amp; Private Storage</li>
-            <li>Milestone 2: Case Intake &amp; Confidential Multi-PDF Document Upload</li>
-            <li>Milestone 3: PyMuPDF Document Extraction &amp; OCR Selection Benchmarking</li>
-            <li>Milestone 4: Document Classification &amp; Bank Checklist Gap Analysis</li>
-            <li>Milestone 5: Cross-Document Discrepancy Scrutiny &amp; Evidence-Linked Viewer</li>
-            <li>Milestone 6: Bank Query Generation &amp; Lawyer Review / Sign-off Workflow</li>
-            <li>Milestone 7: Supplementary Deeds Ingestion &amp; Draft LSR Export</li>
-          </ol>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 px-6 py-4 text-center text-xs text-slate-500">
-        AI-Powered Legal Scrutiny Report (LSR) Platform • Built for Bank Loan Processing
+      <footer className="border-t border-slate-200 bg-white py-6 px-6 text-center text-xs text-slate-500">
+        Legal Scrutiny Report (LSR) Platform • Built for Empaneled Bank Advocates &amp; Loan Processing
       </footer>
     </div>
   );
