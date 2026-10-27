@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AuthenticatedShell } from "@/components/layout/authenticated-shell";
 import { useCases } from "@/context/case-context";
 import { PropertyType } from "@/types";
@@ -16,19 +17,19 @@ import {
 
 export default function NewCasePage() {
   const router = useRouter();
-  const { addCase } = useCases();
+  const { addCase, addToast } = useCases();
 
   // Form State
   const [bankName, setBankName] = useState("State Bank of India");
-  const [branch, setBranch] = useState("Koramangala Commercial Branch, Bengaluru");
-  const [caseNumber, setCaseNumber] = useState("SBI/BLR/2026/4102");
-  const [loanAmount, setLoanAmount] = useState("₹ 95,00,000 (INR 95 Lakhs)");
-  const [loanType, setLoanType] = useState("Home Purchase Loan");
+  const [branch, setBranch] = useState("Indiranagar Commercial Branch, Bengaluru");
+  const [caseNumber, setCaseNumber] = useState("SBI/IND/2026/4102");
+  const [loanAmount, setLoanAmount] = useState("₹ 1,25,00,000 (INR 1.25 Crore)");
+  const [loanType, setLoanType] = useState("Housing Loan (Home Purchase)");
 
   const [borrowerName, setBorrowerName] = useState("");
   const [coBorrowerName, setCoBorrowerName] = useState("");
 
-  const [propertyType, setPropertyType] = useState<PropertyType>("Residential Plot");
+  const [propertyType, setPropertyType] = useState<PropertyType>("Independent House / Villa");
   const [surveyNumber, setSurveyNumber] = useState("");
   const [khataNumber, setKhataNumber] = useState("");
   const [propertyAddress, setPropertyAddress] = useState("");
@@ -41,24 +42,25 @@ export default function NewCasePage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Autofill fictional data helper
+  // Autofill realistic Bangalore/Indian property case
   const handleAutofill = () => {
     setBorrowerName("Girish M. Hegde");
     setCoBorrowerName("Sunanda G. Hegde");
     setBankName("State Bank of India");
-    setBranch("Indiranagar Branch, Bengaluru");
+    setBranch("Indiranagar Commercial Branch, Bengaluru");
     setCaseNumber("SBI/IND/2026/8941");
-    setLoanAmount("₹ 1,10,00,000 (INR 1.10 Crore)");
-    setLoanType("Housing Loan (Individual Construction)");
-    setPropertyType("Residential Plot");
-    setSurveyNumber("88/2B");
-    setKhataNumber("BBMP/E-KHATA/882-B");
-    setPropertyAddress("Site No. 24, BDA Approved Layout, 3rd Block, HBR Layout, Bengaluru - 560043");
-    setBoundaryNorth("Site No. 23 (Private Owner)");
-    setBoundarySouth("Site No. 25 (Vacant Plot)");
-    setBoundaryEast("40-Feet Main Layout Road");
-    setBoundaryWest("Survey No. 88/1 Agricultural Border");
+    setLoanAmount("₹ 1,35,00,000 (INR 1.35 Crore)");
+    setLoanType("Home Purchase Resale Loan");
+    setPropertyType("Independent House / Villa");
+    setSurveyNumber("89/1");
+    setKhataNumber("BBMP/A-Khata/89-01");
+    setPropertyAddress("Site No. 22, Sy. No. 89/1, 4th Main Road, HAL 2nd Stage, Indiranagar, Bengaluru 560038");
+    setBoundaryNorth("Private Site No. 21");
+    setBoundarySouth("30-Foot Main Cross Road");
+    setBoundaryEast("Site No. 23 (Check for layout discrepancy)");
+    setBoundaryWest("Storm Water Drainage Alignment");
     setError(null);
+    addToast("Autofill Applied", "Loaded realistic Bengaluru property title profile.", "info");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -66,300 +68,294 @@ export default function NewCasePage() {
     setError(null);
 
     if (!borrowerName.trim()) {
-      setError("Please enter the primary Borrower / Title Holder name.");
+      setError("Please provide the Primary Borrower / Title Holder name.");
       return;
     }
-    if (!propertyAddress.trim() || !surveyNumber.trim()) {
-      setError("Property Address and Survey / Khasra number are mandatory for title scrutiny.");
+    if (!surveyNumber.trim()) {
+      setError("Please enter the Revenue Survey / CTS / Plot Number.");
+      return;
+    }
+    if (!propertyAddress.trim()) {
+      setError("Please enter the complete physical schedule property address.");
       return;
     }
 
     setSubmitting(true);
 
-    const newId = addCase({
-      caseNumber,
-      borrowerName,
-      coBorrowerName: coBorrowerName || undefined,
-      bankName,
-      branch,
-      propertyAddress,
+    const newCaseId = addCase({
+      caseNumber: caseNumber.trim() || `LSR/${Date.now().toString().slice(-4)}`,
+      borrowerName: borrowerName.trim(),
+      coBorrowerName: coBorrowerName.trim() || undefined,
+      bankName: bankName.trim(),
+      branch: branch.trim(),
+      propertyAddress: propertyAddress.trim(),
       propertyType,
-      surveyNumber,
-      khataNumber: khataNumber || undefined,
+      surveyNumber: surveyNumber.trim(),
+      khataNumber: khataNumber.trim() || undefined,
       boundaries: {
-        north: boundaryNorth || "Demarcated Site",
-        south: boundarySouth || "Demarcated Site",
-        east: boundaryEast || "Layout Road",
-        west: boundaryWest || "Boundary",
+        north: boundaryNorth.trim() || "Boundary As per deed",
+        south: boundarySouth.trim() || "Road",
+        east: boundaryEast.trim() || "Adjacent Property",
+        west: boundaryWest.trim() || "Adjacent Property",
       },
-      loanAmount,
-      loanType,
+      loanAmount: loanAmount.trim() || "₹ 50,00,000",
+      loanType: loanType.trim() || "Home Loan",
       status: "Intake",
-      assignedLawyer: "Adv. K. R. Sreenivasan (Chambers)",
+      assignedLawyer: "Adv. Sreenivasan Narayanan",
     });
 
-    setTimeout(() => {
-      setSubmitting(false);
-      // Navigate to the documents upload stage for this new case
-      router.push(`/cases/${newId}/documents`);
-    }, 500);
+    // Seamlessly transition straight into Document Ingestion
+    router.push(`/cases/${newCaseId}/documents`);
   };
 
   return (
     <AuthenticatedShell>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Top Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-800 transition-colors"
+            <Link
+              href="/cases"
+              className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors shadow-xs"
             >
               <IconArrowLeft className="w-4 h-4" />
-            </button>
+            </Link>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-[#10233F]">
-                New Case Intake: Property Scrutiny
+              <h1 className="text-2xl font-extrabold tracking-tight text-[#10233F]">
+                New Scrutiny Case Intake
               </h1>
-              <p className="text-xs text-slate-500">
-                Register property schedule and bank loan details to initiate chain verification.
+              <p className="text-xs text-slate-500 mt-0.5">
+                Register property schedule and bank loan parameters for AI title devolution analysis.
               </p>
             </div>
           </div>
+
           <button
             type="button"
             onClick={handleAutofill}
-            className="text-xs font-medium text-[#356AE6] hover:text-[#2655C4] border border-[#356AE6]/30 bg-blue-50/50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-50 border border-blue-200 text-[#356AE6] hover:bg-blue-100 text-xs font-bold transition-all shadow-xs"
           >
             <IconCheck className="w-3.5 h-3.5" />
-            <span>Autofill Fictional Sample</span>
+            <span>Autofill Demo Property Profile</span>
           </button>
         </div>
 
         {error && (
-          <div className="rounded-xl bg-rose-50 border border-rose-200 p-4 text-xs text-rose-700">
-            <strong>Validation Error:</strong> {error}
+          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
+            <span>?</span>
+            <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Section 1: Bank & Loan File Information */}
-          <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+          {/* Card 1: Lending Institution & Facility */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <IconBuilding className="w-4 h-4 text-[#356AE6]" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#10233F]">
-                1. Bank &amp; Loan Reference
-              </h3>
+              <h2 className="text-sm font-bold text-[#10233F]">1. Lending Institution &amp; Sanction Particulars</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Empaneled Bank</label>
+                <label className="block font-semibold text-slate-700 mb-1">Empaneled Bank Name</label>
                 <select
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-semibold focus:outline-none focus:ring-2 focus:ring-[#356AE6]"
                 >
-                  <option value="State Bank of India">State Bank of India</option>
-                  <option value="HDFC Bank Ltd.">HDFC Bank Ltd.</option>
+                  <option value="State Bank of India">State Bank of India (SBI)</option>
+                  <option value="HDFC Bank">HDFC Bank Limited</option>
                   <option value="ICICI Bank">ICICI Bank</option>
-                  <option value="Axis Bank">Axis Bank</option>
-                  <option value="Canara Bank">Canara Bank</option>
                   <option value="Bank of Baroda">Bank of Baroda</option>
+                  <option value="Canara Bank">Canara Bank</option>
+                  <option value="Axis Bank">Axis Bank</option>
+                  <option value="Punjab National Bank">Punjab National Bank</option>
+                  <option value="Other Bank / NBFC">Other Bank / Housing Finance Company</option>
                 </select>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Bank Branch</label>
+                <label className="block font-semibold text-slate-700 mb-1">Branch &amp; Processing Hub</label>
                 <input
                   type="text"
                   required
+                  placeholder="e.g. Indiranagar Commercial Branch, Bengaluru"
                   value={branch}
                   onChange={(e) => setBranch(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Bank Case / LOS Reference</label>
+                <label className="block font-semibold text-slate-700 mb-1">Bank Loan Reference / File No.</label>
                 <input
                   type="text"
-                  required
+                  placeholder="e.g. SBI/IND/2026/8941"
                   value={caseNumber}
                   onChange={(e) => setCaseNumber(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Loan Category</label>
+                <label className="block font-semibold text-slate-700 mb-1">Loan Amount &amp; Facility Type</label>
                 <input
                   type="text"
-                  value={loanType}
-                  onChange={(e) => setLoanType(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Sanction / Applied Amount</label>
-                <input
-                  type="text"
+                  placeholder="e.g. ? 1,25,00,000 (Home Purchase Loan)"
                   value={loanAmount}
                   onChange={(e) => setLoanAmount(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
                 />
               </div>
             </div>
           </div>
 
-          {/* Section 2: Borrower Information */}
-          <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+          {/* Card 2: Borrower & Ownership Particulars */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <IconUser className="w-4 h-4 text-[#356AE6]" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#10233F]">
-                2. Borrower / Title Holder Particulars
-              </h3>
+              <h2 className="text-sm font-bold text-[#10233F]">2. Applicant &amp; Co-Owner Details</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Primary Borrower / Title Holder <span className="text-rose-500">*</span>
+                  Primary Title Holder / Borrower <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Sri. Ramesh Chandra"
+                  placeholder="Full name as appearing on registered title deed"
                   value={borrowerName}
                   onChange={(e) => setBorrowerName(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#356AE6]"
                 />
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Co-Borrower / Joint Owner (Optional)
+                  Co-Borrower / Joint Owner <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Smt. Kavitha Ramesh"
+                  placeholder="Spouse / Co-applicant name"
                   value={coBorrowerName}
                   onChange={(e) => setCoBorrowerName(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
                 />
               </div>
             </div>
           </div>
 
-          {/* Section 3: Property Schedule */}
-          <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+          {/* Card 3: Schedule Property Particulars */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <IconFileText className="w-4 h-4 text-[#356AE6]" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#10233F]">
-                3. Property Schedule &amp; Identification
-              </h3>
+              <h2 className="text-sm font-bold text-[#10233F]">3. Schedule Property &amp; Revenue Survey</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Property Type</label>
+                <label className="block font-semibold text-slate-700 mb-1">Property Classification</label>
                 <select
                   value={propertyType}
                   onChange={(e) => setPropertyType(e.target.value as PropertyType)}
-                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-semibold focus:outline-none focus:ring-2 focus:ring-[#356AE6]"
                 >
                   <option value="Residential Plot">Residential Plot</option>
                   <option value="Apartment / Flat">Apartment / Flat</option>
                   <option value="Independent House / Villa">Independent House / Villa</option>
                   <option value="Commercial Property">Commercial Property</option>
-                  <option value="Agricultural / Non-Agricultural Land">Agricultural / Non-Agricultural Land</option>
+                  <option value="Agricultural / Non-Agricultural Land">Converted Land</option>
                 </select>
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Survey / Khasra Number <span className="text-rose-500">*</span>
+                  Survey / CTS / Site No. <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 42/1A or 108/2"
+                  placeholder="e.g. Sy. No. 89/1, Site No. 22"
                   value={surveyNumber}
                   onChange={(e) => setSurveyNumber(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
                 />
               </div>
 
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Khata / Patta / PID Number
+                  Khata / Municipal Assessment No.
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. BBMP/150200..."
+                  placeholder="e.g. BBMP A-Khata 89-01"
                   value={khataNumber}
                   onChange={(e) => setKhataNumber(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
-                />
-              </div>
-
-              <div className="md:col-span-3">
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Complete Property Address &amp; Description <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  rows={2}
-                  required
-                  placeholder="Plot/Flat No, Layout, Village/Hobli, Taluk, City/District, PIN"
-                  value={propertyAddress}
-                  onChange={(e) => setPropertyAddress(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
                 />
               </div>
             </div>
 
-            {/* Boundaries Subgrid */}
-            <div className="pt-3 border-t border-slate-100">
-              <span className="block text-xs font-semibold text-slate-700 mb-2">
-                Four Boundaries (as per Sale Deed schedule):
+            <div className="text-xs">
+              <label className="block font-semibold text-slate-700 mb-1">
+                Complete Schedule Address Description <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows={2}
+                required
+                placeholder="Site/Flat No, Layout Name, Ward, Hobli, Village, Taluk, District, State and Pin code..."
+                value={propertyAddress}
+                onChange={(e) => setPropertyAddress(e.target.value)}
+                className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#356AE6]"
+              />
+            </div>
+
+            {/* Schedule Boundaries Sub-Grid */}
+            <div className="pt-2">
+              <span className="block font-bold text-slate-800 text-xs uppercase tracking-wider mb-2">
+                Four Quadrant Schedule Boundaries (Crucial for AI Mismatch Detection)
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="block text-[11px] text-slate-500 mb-1">North Boundary</label>
+                  <label className="block font-medium text-slate-600 mb-1">North Boundary</label>
                   <input
                     type="text"
-                    placeholder="Adjacent Site / Road"
+                    placeholder="e.g. Site No. 21"
                     value={boundaryNorth}
                     onChange={(e) => setBoundaryNorth(e.target.value)}
-                    className="w-full p-1.5 rounded-lg border border-slate-200 bg-slate-50"
+                    className="w-full p-2 rounded-lg border border-slate-300"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] text-slate-500 mb-1">South Boundary</label>
+                  <label className="block font-medium text-slate-600 mb-1">South Boundary</label>
                   <input
                     type="text"
-                    placeholder="Adjacent Site / Road"
+                    placeholder="e.g. 30-Foot Main Access Road"
                     value={boundarySouth}
                     onChange={(e) => setBoundarySouth(e.target.value)}
-                    className="w-full p-1.5 rounded-lg border border-slate-200 bg-slate-50"
+                    className="w-full p-2 rounded-lg border border-slate-300"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] text-slate-500 mb-1">East Boundary</label>
+                  <label className="block font-medium text-slate-600 mb-1">East Boundary</label>
                   <input
                     type="text"
-                    placeholder="Road / Drainage"
+                    placeholder="e.g. Site No. 23"
                     value={boundaryEast}
                     onChange={(e) => setBoundaryEast(e.target.value)}
-                    className="w-full p-1.5 rounded-lg border border-slate-200 bg-slate-50"
+                    className="w-full p-2 rounded-lg border border-slate-300"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] text-slate-500 mb-1">West Boundary</label>
+                  <label className="block font-medium text-slate-600 mb-1">West Boundary</label>
                   <input
                     type="text"
-                    placeholder="Private Property"
+                    placeholder="e.g. Drainage Buffer / Road"
                     value={boundaryWest}
                     onChange={(e) => setBoundaryWest(e.target.value)}
-                    className="w-full p-1.5 rounded-lg border border-slate-200 bg-slate-50"
+                    className="w-full p-2 rounded-lg border border-slate-300"
                   />
                 </div>
               </div>
@@ -367,30 +363,21 @@ export default function NewCasePage() {
           </div>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="px-4 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+          <div className="flex items-center justify-between pt-2">
+            <Link
+              href="/cases"
+              className="px-5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 font-semibold text-xs transition-colors"
             >
-              Cancel
-            </button>
+              Cancel &amp; Return
+            </Link>
+
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#356AE6] hover:bg-[#2655C4] text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-[#356AE6] hover:bg-[#2655C4] text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all"
             >
-              {submitting ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  <span>Registering Case...</span>
-                </>
-              ) : (
-                <>
-                  <IconPlus className="w-4 h-4" />
-                  <span>Initialize Case &amp; Proceed to Upload Documents</span>
-                </>
-              )}
+              <IconPlus className="w-4 h-4" />
+              <span>{submitting ? "Initializing Case..." : "Create Case & Upload Deeds"}</span>
             </button>
           </div>
         </form>

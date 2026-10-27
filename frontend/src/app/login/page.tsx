@@ -57,10 +57,10 @@ export default function LoginPage() {
           <IconScale className="w-6 h-6 text-[#356AE6]" />
         </div>
         <h2 className="mt-4 text-2xl font-bold tracking-tight text-[#10233F]">
-          Legal Scrutiny Report Platform
+          Lawyer Copilot
         </h2>
         <p className="mt-1 text-xs text-slate-500">
-          Bank Empaneled Title Verification &amp; Loan Scrutiny Portal
+          Empaneled Title Scrutiny &amp; Legal Report Portal
         </p>
       </div>
 

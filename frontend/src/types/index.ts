@@ -78,6 +78,9 @@ export interface CaseDocument {
   confidenceScore: number;
   isSupplementary?: boolean;
   sampleSnippets?: Array<{ page: number; text: string }>;
+  fileUrl?: string;
+  isRealFile?: boolean;
+  rawText?: string;
 }
 
 export type FindingSeverity = "critical" | "warning" | "info";
@@ -110,6 +113,8 @@ export interface ScrutinyFinding {
   modifiedFindingText?: string;
   suggestedQueryText?: string;
   reviewedAt?: string;
+  isAiGenerated?: boolean;
+  isRealDocEvidence?: boolean;
 }
 
 export type QueryStatus = "Draft" | "Approved" | "Sent to Bank" | "Resolved" | "Waived";

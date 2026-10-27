@@ -19,7 +19,7 @@ import { useCases } from "@/context/case-context";
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const { userProfile, cases } = useCases();
+  const { userProfile, cases, backendOnline } = useCases();
 
   const activeCasesCount = cases.filter((c) => c.status !== "Completed").length;
 
@@ -31,7 +31,7 @@ export function Sidebar() {
       badge: null,
     },
     {
-      name: "All Cases",
+      name: "All Matters",
       href: "/cases",
       icon: IconBriefcase,
       badge: activeCasesCount > 0 ? activeCasesCount : null,
@@ -60,23 +60,23 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`relative flex flex-col bg-[#10233F] text-white border-r border-[#1a345c] transition-all duration-300 z-30 select-none ${
+      className={`relative flex flex-col bg-[#0A1628] text-white border-r border-[#1a2d4b] transition-all duration-300 z-30 select-none ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
       {/* Brand & Logo Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-[#1d3d6e]">
+      <div className="h-16 flex items-center justify-between px-4 border-b border-[#1a2d4b]">
         <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden">
-          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#356AE6] flex items-center justify-center text-white shadow-md shadow-blue-900/40">
+          <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#356AE6] to-[#1e44a0] flex items-center justify-center text-white shadow-md shadow-blue-900/40">
             <IconScale className="w-5 h-5 text-white" />
           </div>
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="font-bold text-sm tracking-wide text-white flex items-center gap-1.5">
-                LSR PLATFORM
+              <span className="font-extrabold text-sm tracking-tight text-white flex items-center gap-1.5">
+                Lawyer Copilot
               </span>
-              <span className="text-[10px] text-blue-200/70 font-medium uppercase tracking-wider">
-                Bank Scrutiny SaaS
+              <span className="text-[10px] text-blue-300/80 font-medium tracking-wide">
+                Property Scrutiny &amp; LSR
               </span>
             </div>
           )}
@@ -94,7 +94,7 @@ export function Sidebar() {
       <div className="flex-1 py-5 px-3 space-y-1.5 overflow-y-auto">
         {!collapsed && (
           <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            Navigation
+            Workspace
           </div>
         )}
 
@@ -105,9 +105,9 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
                 active
-                  ? "bg-[#356AE6] text-white shadow-sm shadow-blue-500/30"
+                  ? "bg-[#356AE6] text-white shadow-sm shadow-blue-500/30 font-semibold"
                   : "text-slate-300 hover:bg-white/5 hover:text-white"
               }`}
               title={collapsed ? item.name : undefined}
@@ -123,50 +123,50 @@ export function Sidebar() {
           );
         })}
 
-        {/* Quick Workflow Section when on a Case */}
+        {/* Contextual Case Workflow Stepper */}
         {pathname.startsWith("/cases/") && pathname !== "/cases/new" && !collapsed && (
           <div className="pt-6">
             <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
               <span>Active Case Flow</span>
             </div>
             <div className="space-y-1 text-xs">
-              <div className="px-3 py-1.5 text-[11px] font-mono text-blue-300 bg-blue-950/40 rounded border border-blue-900/40 truncate">
+              <div className="px-3 py-1.5 text-[11px] font-mono text-blue-300 bg-blue-950/50 rounded-lg border border-blue-900/50 truncate">
                 {pathname.split("/")[2]}
               </div>
               <Link
                 href={`${pathname.split("/").slice(0, 3).join("/")}/documents`}
-                className={`flex items-center gap-2.5 px-3 py-1.5 rounded text-[11px] transition-colors ${
-                  pathname.includes("/documents") ? "text-white font-medium bg-white/10" : "text-slate-400 hover:text-slate-200"
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-colors ${
+                  pathname.includes("/documents") ? "text-white font-semibold bg-white/15" : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                <IconFileText className="w-3.5 h-3.5" />
-                <span>1. Documents & Upload</span>
+                <IconFileText className="w-3.5 h-3.5 text-blue-400" />
+                <span>1. Upload Deeds</span>
               </Link>
               <Link
                 href={`${pathname.split("/").slice(0, 3).join("/")}/scrutiny`}
-                className={`flex items-center gap-2.5 px-3 py-1.5 rounded text-[11px] transition-colors ${
-                  pathname.includes("/scrutiny") ? "text-white font-medium bg-white/10" : "text-slate-400 hover:text-slate-200"
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-colors ${
+                  pathname.includes("/scrutiny") ? "text-white font-semibold bg-white/15" : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                <IconScale className="w-3.5 h-3.5" />
-                <span>2. Scrutiny & Evidence</span>
+                <IconScale className="w-3.5 h-3.5 text-amber-400" />
+                <span>2. AI Evidence Scrutiny</span>
               </Link>
               <Link
                 href={`${pathname.split("/").slice(0, 3).join("/")}/queries`}
-                className={`flex items-center gap-2.5 px-3 py-1.5 rounded text-[11px] transition-colors ${
-                  pathname.includes("/queries") ? "text-white font-medium bg-white/10" : "text-slate-400 hover:text-slate-200"
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-colors ${
+                  pathname.includes("/queries") ? "text-white font-semibold bg-white/15" : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                <IconShield className="w-3.5 h-3.5" />
-                <span>3. Bank Queries</span>
+                <IconShield className="w-3.5 h-3.5 text-indigo-400" />
+                <span>3. Bank Requisitions</span>
               </Link>
               <Link
                 href={`${pathname.split("/").slice(0, 3).join("/")}/report`}
-                className={`flex items-center gap-2.5 px-3 py-1.5 rounded text-[11px] transition-colors ${
-                  pathname.includes("/report") ? "text-white font-medium bg-white/10" : "text-slate-400 hover:text-slate-200"
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-colors ${
+                  pathname.includes("/report") ? "text-white font-semibold bg-white/15" : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                <IconFileText className="w-3.5 h-3.5" />
+                <IconFileText className="w-3.5 h-3.5 text-emerald-400" />
                 <span>4. Draft LSR Report</span>
               </Link>
             </div>
@@ -174,15 +174,25 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Chamber Advocate Badge at Bottom */}
-      <div className="p-3 border-t border-[#1d3d6e] bg-[#0c1b31]">
+      {/* Engine Status & Advocate Profile at Bottom */}
+      <div className="p-3 border-t border-[#1a2d4b] bg-[#07101e] space-y-2">
+        {!collapsed && (
+          <div className="flex items-center justify-between text-[10px] px-1 py-1 rounded bg-black/20 text-slate-300">
+            <span className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${backendOnline ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+              <span>{backendOnline ? "FastAPI & Gemini Live" : "Local Demo Workspace"}</span>
+            </span>
+            <span className="text-[9px] text-slate-500 font-mono">v0.2</span>
+          </div>
+        )}
+
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-200 flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-slate-700 to-slate-600 flex items-center justify-center text-xs font-bold text-slate-100 flex-shrink-0 shadow-xs">
             {userProfile.name.split(" ").slice(-1)[0][0] || "A"}
           </div>
           {!collapsed && (
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-medium text-slate-200 truncate">{userProfile.name}</span>
+              <span className="text-xs font-semibold text-slate-100 truncate">{userProfile.name}</span>
               <span className="text-[10px] text-slate-400 truncate">{userProfile.role}</span>
             </div>
           )}

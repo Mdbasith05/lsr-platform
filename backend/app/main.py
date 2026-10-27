@@ -4,11 +4,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.router import api_v1_router
 from app.api.v1.health import get_health, HealthResponse
+from app.db.init_db import init_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: logging and resource initialization
+    # Startup: initialize database tables and seed if necessary
+    print(f"[{settings.APP_NAME}] Initializing database tables...")
+    try:
+        init_db()
+        print(f"[{settings.APP_NAME}] Database initialized successfully.")
+    except Exception as e:
+        print(f"[{settings.APP_NAME}] Database initialization error: {e}")
+
     print(f"[{settings.APP_NAME}] Starting up in {settings.APP_ENV} mode...")
     yield
     # Shutdown: clean up connections

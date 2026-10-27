@@ -7,6 +7,7 @@ import {
   IconSearch,
   IconBell,
   IconPlus,
+  IconUpload,
   IconUser,
   IconLogOut,
   IconSettings,
@@ -126,6 +127,22 @@ export function TopHeader() {
             className="w-60 pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#356AE6] focus:border-[#356AE6] transition-all"
           />
         </form>
+
+        {/* Actions */}
+        <Link
+          href={`/cases/${
+            pathSegments[0] === "cases" && pathSegments[1] && pathSegments[1] !== "new"
+              ? pathSegments[1]
+              : cases.length > 0
+              ? cases[0].id
+              : "LSR-2026-001"
+          }/documents`}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors"
+          title="Upload Deeds, Encumbrance Certificates, and Property Records"
+        >
+          <IconUpload className="w-3.5 h-3.5 text-[#356AE6]" />
+          <span className="hidden sm:inline">Upload Deeds</span>
+        </Link>
 
         {/* Primary CTA */}
         <Link

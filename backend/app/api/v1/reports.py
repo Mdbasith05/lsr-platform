@@ -1,0 +1,181 @@
+from typing import Optional
+from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy.orm import Session
+from app.db.session import get_db
+from app.db.models import CaseModel, LSRReportModel, DocumentModel, ProfileModel
+from app.schemas.schemas import ReportResponse, ReportUpdate
+from app.services.report_service import report_service
+from app.core.security import get_current_user_stub
+
+router = APIRouter(tags=["Reports"])
+
+
+def serialize_report(r: LSRReportModel, case: CaseModel) -> ReportResponse:
+    prop = case.property
+    prop_desc = (
+        f"{case.borrower_name} &bull; {prop.property_type if prop else 'Residential Plot'} &bull; "
+        f"{prop.property_address if prop else ''} (Survey No. {prop.survey_number if prop else ''})"
+    )
+    boundaries = (
+        f"North: {prop.boundary_north if prop else ''} | South: {prop.boundary_south if prop else ''} | "
+        f"East: {prop.boundary_east if prop else ''} | West: {prop.boundary_west if prop else ''}"
+    )
+
+    return ReportResponse(
+        caseId=r.case_id,
+        reportRefNumber=r.report_ref_number,
+        reportDate=r.report_date,
+        opinionOutcome=r.opinion_outcome,
+        advocateName="Adv. Rajesh Kumar, B.A.L., LL.B.",
+        barEnrollmentNumber="KAR/1429/2012",
+        chamberAddress="Chamber #402, High Court Lawyers Chambers, Bengaluru - 560001",
+        propertyDescription=prop_desc,
+        boundariesSummary=boundaries,
+        chainOfTitleNarrative=r.chain_of_title_narrative or "Devolution of title verified across registered deeds.",
+        encumbranceVerificationNotes=r.encumbrance_verification_notes or "Continuous 30-year Form 15 search inspected.",
+        revenueRecordsNotes=r.revenue_records_notes or "Municipal Khata extract and tax paid receipts inspected.",
+        preDisbursementConditions=r.pre_disbursement_conditions or [],
+        postDisbursementConditions=r.post_disbursement_conditions or [],
+        generalObservations=r.general_observations or "Title is marketable subject to compliance with conditions.",
+        isSigned=r.is_signed,
+        signedAt=r.signed_at.isoformat() if r.signed_at else None,
+    )
+
+
+@router.get("/cases/{case_id}/report", response_model=ReportResponse)
+def get_case_report(
+    case_id: str,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user_stub),
+):
+    case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    report = db.query(LSRReportModel).filter(LSRReportModel.case_id == case_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report draft not found")
+
+    return serialize_report(report, case)
+
+
+@router.put("/cases/{case_id}/report", response_model=ReportResponse)
+def update_case_report(
+    case_id: str,
+    payload: ReportUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user_stub),
+):
+    case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    report = db.query(LSRReportModel).filter(LSRReportModel.case_id == case_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report draft not found")
+
+    if payload.opinionOutcome:
+        report.opinion_outcome = payload.opinionOutcome
+    if payload.chainOfTitleNarrative is not None:
+        report.chain_of_title_narrative = payload.chainOfTitleNarrative
+    if payload.encumbranceVerificationNotes is not None:
+        report.encumbrance_verification_notes = payload.encumbranceVerificationNotes
+    if payload.revenueRecordsNotes is not None:
+        report.revenue_records_notes = payload.revenueRecordsNotes
+    if payload.preDisbursementConditions is not None:
+        report.pre_disbursement_conditions = payload.preDisbursementConditions
+    if payload.postDisbursementConditions is not None:
+        report.post_disbursement_conditions = payload.postDisbursementConditions
+    if payload.generalObservations is not None:
+        report.general_observations = payload.generalObservations
+
+    db.commit()
+    db.refresh(report)
+    return serialize_report(report, case)
+
+
+@router.post("/cases/{case_id}/report/sign", response_model=ReportResponse)
+def sign_case_report(
+    case_id: str,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user_stub),
+):
+    case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    report = db.query(LSRReportModel).filter(LSRReportModel.case_id == case_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report draft not found")
+
+    report.is_signed = True
+    report.signed_at = datetime.now(timezone.utc)
+    case.status = "Completed"
+
+    db.commit()
+    db.refresh(report)
+    return serialize_report(report, case)
+
+
+@router.get("/cases/{case_id}/report/export-pdf")
+def export_case_report_pdf(
+    case_id: str,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user_stub),
+):
+    case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    report = db.query(LSRReportModel).filter(LSRReportModel.case_id == case_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report draft not found")
+
+    prop = case.property
+    case_dict = {
+        "borrower_name": case.borrower_name,
+        "co_borrower_name": case.co_borrower_name,
+        "bank_name": case.bank_name,
+        "branch": case.branch,
+        "loan_amount": case.loan_amount,
+        "property_address": prop.property_address if prop else "",
+        "survey_number": prop.survey_number if prop else "",
+        "khata_number": prop.khata_number if prop else "",
+        "boundary_north": prop.boundary_north if prop else "",
+        "boundary_south": prop.boundary_south if prop else "",
+        "boundary_east": prop.boundary_east if prop else "",
+        "boundary_west": prop.boundary_west if prop else "",
+    }
+
+    report_dict = {
+        "reportRefNumber": report.report_ref_number,
+        "reportDate": report.report_date,
+        "opinionOutcome": report.opinion_outcome,
+        "advocateName": "Adv. Rajesh Kumar, B.A.L., LL.B.",
+        "barEnrollmentNumber": "KAR/1429/2012",
+        "chamberAddress": "Chamber #402, High Court Lawyers Chambers, Bengaluru - 560001",
+        "chainOfTitleNarrative": report.chain_of_title_narrative,
+        "preDisbursementConditions": report.pre_disbursement_conditions,
+        "isSigned": report.is_signed,
+    }
+
+    docs = db.query(DocumentModel).filter(DocumentModel.case_id == case_id).all()
+    docs_list = [
+        {
+            "file_name": d.file_name,
+            "doc_type": d.doc_type,
+            "doc_date": d.doc_date,
+            "registration_number": d.registration_number,
+        }
+        for d in docs
+    ]
+
+    pdf_bytes = report_service.generate_lsr_pdf_bytes(report_dict, case_dict, docs_list)
+
+    filename = f"LSR_Report_{case.case_number.replace('/', '_')}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
