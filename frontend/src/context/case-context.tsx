@@ -26,12 +26,23 @@ import {
   checkBackendHealth,
   requestAiScrutiny,
   fetchCasesFromBackend,
+  fetchCaseByIdFromBackend,
   createCaseOnBackend,
+  updateCaseOnBackend,
+  deleteCaseOnBackend,
+  fetchCaseDocumentsFromBackend,
+  deleteDocumentOnBackend,
+  fetchCaseFindingsFromBackend,
+  addFindingOnBackend,
   updateFindingDecisionOnBackend,
+  fetchCaseQueriesFromBackend,
   createQueryOnBackend,
   updateQueryOnBackend,
+  deleteQueryOnBackend,
+  fetchCaseReportFromBackend,
   updateReportOnBackend,
   signReportOnBackend,
+  amendReportOnBackend,
 } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 
@@ -56,24 +67,27 @@ interface CaseContextType {
   backendOnline: boolean;
   backendCheckLoading: boolean;
   checkBackendConnection: () => Promise<void>;
+  loadCaseDetails: (caseId: string) => Promise<void>;
   getCaseById: (caseId: string) => Case | undefined;
-  addCase: (newCase: Omit<Case, "id" | "createdAt" | "updatedAt" | "documentCount" | "openQueriesCount" | "findingsCount">) => string;
-  deleteCase: (caseId: string) => void;
-  updateCaseStatus: (caseId: string, status: CaseStatus) => void;
+  addCase: (newCase: Omit<Case, "id" | "createdAt" | "updatedAt" | "documentCount" | "openQueriesCount" | "findingsCount">) => Promise<string>;
+  deleteCase: (caseId: string) => Promise<void>;
+  updateCaseStatus: (caseId: string, status: CaseStatus) => Promise<void>;
   getDocumentsByCaseId: (caseId: string) => CaseDocument[];
   addDocumentsToCase: (caseId: string, newDocs: Array<Omit<CaseDocument, "id" | "caseId" | "uploadedAt" | "status" | "confidenceScore">>) => void;
-  deleteDocument: (docId: string) => void;
+  deleteDocument: (docId: string) => Promise<void>;
   getFindingsByCaseId: (caseId: string) => ScrutinyFinding[];
-  updateFindingDecision: (findingId: string, decision: LawyerDecision, lawyerNotes?: string) => void;
-  addCustomFinding: (caseId: string, finding: Omit<ScrutinyFinding, "id" | "caseId">) => void;
+  updateFindingDecision: (findingId: string, decision: LawyerDecision, lawyerNotes?: string) => Promise<void>;
+  addCustomFinding: (caseId: string, finding: Omit<ScrutinyFinding, "id" | "caseId">) => Promise<void>;
   triggerScrutinyAnalysis: (caseId: string) => Promise<void>;
   getQueriesByCaseId: (caseId: string) => CaseQuery[];
-  addQueryToCase: (caseId: string, queryData: { title: string; draftText: string; linkedFindingId?: string; linkedFindingTitle?: string }) => void;
-  updateQueryStatus: (queryId: string, status: QueryStatus) => void;
-  updateQueryText: (queryId: string, approvedText: string) => void;
+  addQueryToCase: (caseId: string, queryData: { title: string; draftText: string; linkedFindingId?: string; linkedFindingTitle?: string }) => Promise<void>;
+  updateQueryStatus: (queryId: string, status: QueryStatus) => Promise<void>;
+  updateQueryText: (queryId: string, approvedText: string) => Promise<void>;
+  deleteQuery: (queryId: string) => Promise<void>;
   getReportByCaseId: (caseId: string) => LSRReportData | undefined;
-  updateReportData: (caseId: string, data: Partial<LSRReportData>) => void;
-  signReport: (caseId: string) => void;
+  updateReportData: (caseId: string, data: Partial<LSRReportData>) => Promise<void>;
+  signReport: (caseId: string) => Promise<void>;
+  amendReport: (caseId: string) => Promise<void>;
   updateUserProfile: (profile: Partial<UserProfile>) => void;
   updateTemplate: (templateId: string, updates: Partial<ScrutinyRuleTemplate>) => void;
   markNotificationRead: (id: string) => void;
@@ -85,14 +99,14 @@ const CaseContext = createContext<CaseContextType | undefined>(undefined);
 function purgeLegacyMockStorageOnce() {
   if (typeof window === "undefined") return;
   try {
-    const initialized = localStorage.getItem("lsr_clean_initial_v1");
+    const initialized = localStorage.getItem("lsr_clean_initial_v2");
     if (!initialized) {
       localStorage.removeItem("lsr_cases");
       localStorage.removeItem("lsr_documents");
       localStorage.removeItem("lsr_findings");
       localStorage.removeItem("lsr_queries");
       localStorage.removeItem("lsr_reports");
-      localStorage.setItem("lsr_clean_initial_v1", "true");
+      localStorage.setItem("lsr_clean_initial_v2", "true");
     }
   } catch {
     // Ignore localStorage access errors
@@ -200,19 +214,88 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
   }, [session]);
 
   const getCaseById = (caseId: string) => {
-    return cases.find((c) => c.id === caseId);
+    return cases.find((c) => c.id === caseId || c.caseNumber === caseId);
   };
 
-  const addCase = (
+  // Rehydrate complete case details from PostgreSQL
+  const loadCaseDetails = useCallback(async (caseId: string) => {
+    if (!caseId) return;
+
+    // Check if case is already in cases list or fetch it
+    let targetCase = cases.find((c) => c.id === caseId || c.caseNumber === caseId);
+    if (!targetCase && backendOnline) {
+      const caseRes = await fetchCaseByIdFromBackend(caseId);
+      if (caseRes.success && caseRes.data) {
+        targetCase = caseRes.data;
+        setCases((prev) => [caseRes.data!, ...prev.filter((c) => c.id !== caseRes.data!.id)]);
+      }
+    }
+
+    if (backendOnline) {
+      const resolvedId = targetCase?.id || caseId;
+
+      // Parallel fetch documents, findings, queries, and report
+      const [docsRes, findingsRes, queriesRes, reportRes] = await Promise.all([
+        fetchCaseDocumentsFromBackend(resolvedId),
+        fetchCaseFindingsFromBackend(resolvedId),
+        fetchCaseQueriesFromBackend(resolvedId),
+        fetchCaseReportFromBackend(resolvedId),
+      ]);
+
+      if (docsRes.success && Array.isArray(docsRes.data)) {
+        setDocuments((prev) => [
+          ...docsRes.data!,
+          ...prev.filter((d) => d.caseId !== resolvedId && d.caseId !== caseId),
+        ]);
+      }
+
+      if (findingsRes.success && Array.isArray(findingsRes.data)) {
+        setFindings((prev) => [
+          ...findingsRes.data!,
+          ...prev.filter((f) => f.caseId !== resolvedId && f.caseId !== caseId),
+        ]);
+      }
+
+      if (queriesRes.success && Array.isArray(queriesRes.data)) {
+        setQueries((prev) => [
+          ...queriesRes.data!,
+          ...prev.filter((q) => q.caseId !== resolvedId && q.caseId !== caseId),
+        ]);
+      }
+
+      if (reportRes.success && reportRes.data) {
+        setReports((prev) => ({
+          ...prev,
+          [resolvedId]: reportRes.data!,
+          [caseId]: reportRes.data!,
+        }));
+      }
+    }
+  }, [backendOnline, cases]);
+
+  const addCase = async (
     newCaseData: Omit<Case, "id" | "createdAt" | "updatedAt" | "documentCount" | "openQueriesCount" | "findingsCount">
-  ): string => {
+  ): Promise<string> => {
     const nextNum = cases.length + 1;
-    const newId = `LSR-2026-${String(nextNum).padStart(3, "0")}`;
+    const fallbackNum = `LSR-2026-${String(nextNum).padStart(3, "0")}`;
     const now = new Date().toISOString();
+
+    if (backendOnline) {
+      const res = await createCaseOnBackend({ ...newCaseData, caseNumber: newCaseData.caseNumber || fallbackNum });
+      if (res.success && res.data) {
+        const serverCase = res.data;
+        const updated = [serverCase, ...cases.filter((c) => c.id !== serverCase.id)];
+        setCases(updated);
+        saveState("lsr_cases", updated);
+        addToast("Case Created", `New scrutiny matter ${serverCase.caseNumber} initialized on Supabase.`, "success");
+        return serverCase.id;
+      }
+    }
 
     const createdCase: Case = {
       ...newCaseData,
-      id: newId,
+      id: fallbackNum,
+      caseNumber: newCaseData.caseNumber || fallbackNum,
       createdAt: now,
       updatedAt: now,
       documentCount: 0,
@@ -223,40 +306,58 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     const updated = [createdCase, ...cases];
     setCases(updated);
     saveState("lsr_cases", updated);
+    addToast("Case Created", `New scrutiny matter ${fallbackNum} initialized.`, "success");
+    return fallbackNum;
+  };
+
+  const deleteCase = async (caseId: string) => {
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
+
     if (backendOnline) {
-      createCaseOnBackend({ ...newCaseData, caseNumber: newId }).catch(() => {});
+      await deleteCaseOnBackend(resolvedId).catch(() => {});
     }
-    addToast("Case Created", `New scrutiny matter ${newId} initialized.`, "success");
-    return newId;
-  };
 
-  const deleteCase = (caseId: string) => {
-    const updated = cases.filter((c) => c.id !== caseId);
+    const updated = cases.filter((c) => c.id !== resolvedId && c.caseNumber !== resolvedId);
     setCases(updated);
     saveState("lsr_cases", updated);
-    addToast("Case Archived", `Matter ${caseId} removed from active view.`, "info");
+    addToast("Case Archived", `Matter ${targetCase?.caseNumber || caseId} archived.`, "info");
   };
 
-  const updateCaseStatus = (caseId: string, status: CaseStatus) => {
-    const updated = cases.map((c) => (c.id === caseId ? { ...c, status, updatedAt: new Date().toISOString() } : c));
+  const updateCaseStatus = async (caseId: string, status: CaseStatus) => {
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
+
+    if (backendOnline) {
+      await updateCaseOnBackend(resolvedId, { status }).catch(() => {});
+    }
+
+    const updated = cases.map((c) =>
+      c.id === resolvedId || c.caseNumber === resolvedId ? { ...c, status, updatedAt: new Date().toISOString() } : c
+    );
     setCases(updated);
     saveState("lsr_cases", updated);
-    addToast("Status Updated", `Case ${caseId} stage moved to ${status}.`, "info");
+    addToast("Status Updated", `Case stage moved to ${status}.`, "info");
   };
 
   const getDocumentsByCaseId = (caseId: string) => {
-    return documents.filter((d) => d.caseId === caseId);
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
+    return documents.filter((d) => d.caseId === resolvedId || d.caseId === caseId);
   };
 
   const addDocumentsToCase = (
     caseId: string,
     newDocs: Array<Omit<CaseDocument, "id" | "caseId" | "uploadedAt" | "status" | "confidenceScore">>
   ) => {
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
     const now = new Date().toISOString();
+
     const createdDocs: CaseDocument[] = newDocs.map((d, index) => ({
       ...d,
       id: `doc-${Date.now()}-${index}`,
-      caseId,
+      caseId: resolvedId,
       uploadedAt: now,
       status: "Review Ready",
       confidenceScore: 0.95,
@@ -267,9 +368,8 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     setDocuments(updatedDocs);
     saveState("lsr_documents", updatedDocs);
 
-    // Update case document count and auto-advance status if Intake
     const updatedCases = cases.map((c) =>
-      c.id === caseId
+      c.id === resolvedId || c.caseNumber === resolvedId
         ? {
             ...c,
             documentCount: c.documentCount + createdDocs.length,
@@ -283,8 +383,13 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     addToast("Documents Ingested", `${createdDocs.length} deed document(s) uploaded and indexed.`, "success");
   };
 
-  const deleteDocument = (docId: string) => {
+  const deleteDocument = async (docId: string) => {
     const target = documents.find((d) => d.id === docId);
+
+    if (backendOnline) {
+      await deleteDocumentOnBackend(docId).catch(() => {});
+    }
+
     const updated = documents.filter((d) => d.id !== docId);
     setDocuments(updated);
     saveState("lsr_documents", updated);
@@ -300,10 +405,12 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getFindingsByCaseId = (caseId: string) => {
-    return findings.filter((f) => f.caseId === caseId);
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
+    return findings.filter((f) => f.caseId === resolvedId || f.caseId === caseId);
   };
 
-  const updateFindingDecision = (findingId: string, decision: LawyerDecision, lawyerNotes?: string) => {
+  const updateFindingDecision = async (findingId: string, decision: LawyerDecision, lawyerNotes?: string) => {
     const targetFinding = findings.find((f) => f.id === findingId);
     const updated = findings.map((f) => {
       if (f.id === findingId) {
@@ -320,13 +427,12 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     saveState("lsr_findings", updated);
 
     if (backendOnline) {
-      updateFindingDecisionOnBackend(findingId, decision, lawyerNotes).catch(() => {});
+      await updateFindingDecisionOnBackend(findingId, decision, lawyerNotes).catch(() => {});
     }
 
-    // If accepted and has a report, auto-add a pre-disbursement condition
     if (decision === "accepted" && targetFinding) {
       const existingReport = getReportByCaseId(targetFinding.caseId);
-      if (existingReport) {
+      if (existingReport && !existingReport.isSigned) {
         const conditionText = `Advocate Condition: Resolution of ${targetFinding.title} as per Bank Requisition.`;
         if (!existingReport.preDisbursementConditions.includes(conditionText)) {
           updateReportData(targetFinding.caseId, {
@@ -339,52 +445,53 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     addToast("Decision Saved", `Flag marked as ${decision.toUpperCase()}.`, "info");
   };
 
-  const addCustomFinding = (caseId: string, finding: Omit<ScrutinyFinding, "id" | "caseId">) => {
+  const addCustomFinding = async (caseId: string, finding: Omit<ScrutinyFinding, "id" | "caseId">) => {
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
+
+    if (backendOnline) {
+      const res = await addFindingOnBackend(resolvedId, finding);
+      if (res.success && res.data) {
+        const updated = [res.data, ...findings];
+        setFindings(updated);
+        saveState("lsr_findings", updated);
+        addToast("Finding Recorded", "Advocate scrutiny observation saved to database.", "success");
+        return;
+      }
+    }
+
     const newFinding: ScrutinyFinding = {
       ...finding,
       id: `fnd-${Date.now()}`,
-      caseId,
+      caseId: resolvedId,
       reviewedAt: new Date().toISOString(),
     };
     const updated = [newFinding, ...findings];
     setFindings(updated);
     saveState("lsr_findings", updated);
-
-    // Update case finding count
-    setCases((prev) =>
-      prev.map((c) => {
-        if (c.id === caseId) {
-          return {
-            ...c,
-            findingsCount: {
-              ...c.findingsCount,
-              [finding.severity]: c.findingsCount[finding.severity] + 1,
-            },
-          };
-        }
-        return c;
-      })
-    );
     addToast("Finding Recorded", "Advocate scrutiny observation added.", "success");
   };
 
   const triggerScrutinyAnalysis = async (caseId: string) => {
-    const caseDocs = getDocumentsByCaseId(caseId);
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
+    const caseDocs = getDocumentsByCaseId(resolvedId);
+
     if (caseDocs.length === 0) {
       addToast("No Deeds Ingested", "Please upload at least one deed PDF before triggering AI scrutiny.", "warning");
       return;
     }
 
     if (backendOnline) {
-      const res = await requestAiScrutiny(caseId);
+      const res = await requestAiScrutiny(resolvedId);
       if (res.success && Array.isArray(res.findings) && res.findings.length > 0) {
         const serverFindings = res.findings;
-        const otherFindings = findings.filter((f) => f.caseId !== caseId);
+        const otherFindings = findings.filter((f) => f.caseId !== resolvedId && f.caseId !== caseId);
         const merged = [...serverFindings, ...otherFindings];
         setFindings(merged);
         saveState("lsr_findings", merged);
-        updateCaseStatus(caseId, "Scrutiny Review");
-        addToast("AI Scrutiny Complete", "Real legal scrutiny completed via FastAPI.", "success");
+        updateCaseStatus(resolvedId, "Scrutiny Review");
+        addToast("AI Scrutiny Complete", "Real legal scrutiny completed via Gemini & Legal Rule Engine.", "success");
         return;
       } else if (res.error) {
         addToast("Scrutiny Service Error", res.error, "warning");
@@ -392,27 +499,42 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Honest reporting when backend is offline or unauthenticated: do not fake findings
     addToast(
       "Backend Authentication Required",
-      "AI Title Scrutiny requires active connection to FastAPI with valid chamber credentials. Real scrutiny output is not available offline.",
+      "AI Title Scrutiny requires active connection to FastAPI with valid chamber credentials.",
       "warning"
     );
   };
 
   const getQueriesByCaseId = (caseId: string) => {
-    return queries.filter((q) => q.caseId === caseId);
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
+    return queries.filter((q) => q.caseId === resolvedId || q.caseId === caseId);
   };
 
-  const addQueryToCase = (
+  const addQueryToCase = async (
     caseId: string,
     queryData: { title: string; draftText: string; linkedFindingId?: string; linkedFindingTitle?: string }
   ) => {
-    const count = queries.filter((q) => q.caseId === caseId).length + 1;
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
+    const count = queries.filter((q) => q.caseId === resolvedId || q.caseId === caseId).length + 1;
     const now = new Date().toISOString();
+
+    if (backendOnline) {
+      const res = await createQueryOnBackend(resolvedId, queryData);
+      if (res.success && res.data) {
+        const updated = [res.data, ...queries];
+        setQueries(updated);
+        saveState("lsr_queries", updated);
+        addToast("Requisition Drafted", `Query ${res.data.queryCode} created and saved to database.`, "success");
+        return;
+      }
+    }
+
     const newQuery: CaseQuery = {
       id: `qry-${Date.now()}`,
-      caseId,
+      caseId: resolvedId,
       queryCode: `REQ/ADV/2026/${String(count).padStart(2, "0")}`,
       title: queryData.title,
       draftText: queryData.draftText,
@@ -427,29 +549,21 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     const updated = [newQuery, ...queries];
     setQueries(updated);
     saveState("lsr_queries", updated);
-
-    if (backendOnline) {
-      createQueryOnBackend(caseId, queryData).catch(() => {});
-    }
-
-    setCases((prev) =>
-      prev.map((c) => (c.id === caseId ? { ...c, openQueriesCount: c.openQueriesCount + 1, updatedAt: now } : c))
-    );
     addToast("Requisition Drafted", `Query ${newQuery.queryCode} created from finding.`, "success");
   };
 
-  const updateQueryStatus = (queryId: string, status: QueryStatus) => {
+  const updateQueryStatus = async (queryId: string, status: QueryStatus) => {
     const now = new Date().toISOString();
     const updated = queries.map((q) => (q.id === queryId ? { ...q, status, updatedAt: now } : q));
     setQueries(updated);
     saveState("lsr_queries", updated);
     if (backendOnline) {
-      updateQueryOnBackend(queryId, { status }).catch(() => {});
+      await updateQueryOnBackend(queryId, { status }).catch(() => {});
     }
     addToast("Query Status Updated", `Requisition marked as ${status}.`, "info");
   };
 
-  const updateQueryText = (queryId: string, approvedText: string) => {
+  const updateQueryText = async (queryId: string, approvedText: string) => {
     const now = new Date().toISOString();
     const updated = queries.map((q) =>
       q.id === queryId ? { ...q, lawyerApprovedText: approvedText, status: "Approved" as QueryStatus, updatedAt: now } : q
@@ -457,19 +571,33 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     setQueries(updated);
     saveState("lsr_queries", updated);
     if (backendOnline) {
-      updateQueryOnBackend(queryId, { lawyerApprovedText: approvedText, status: "Approved" }).catch(() => {});
+      await updateQueryOnBackend(queryId, { lawyerApprovedText: approvedText, status: "Approved" }).catch(() => {});
     }
     addToast("Requisition Approved", "Advocate-approved text saved.", "success");
   };
 
+  const deleteQuery = async (queryId: string) => {
+    if (backendOnline) {
+      await deleteQueryOnBackend(queryId).catch(() => {});
+    }
+    const updated = queries.filter((q) => q.id !== queryId);
+    setQueries(updated);
+    saveState("lsr_queries", updated);
+    addToast("Query Deleted", "Requisition removed.", "info");
+  };
+
   const getReportByCaseId = (caseId: string): LSRReportData | undefined => {
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
+
+    if (reports[resolvedId]) return reports[resolvedId];
     if (reports[caseId]) return reports[caseId];
 
-    const c = getCaseById(caseId);
+    const c = targetCase;
     if (!c) return undefined;
 
     const draft: LSRReportData = {
-      caseId,
+      caseId: resolvedId,
       reportRefNumber: `LSR/${c.bankName.substring(0, 3).toUpperCase()}/2026/${c.id.split("-")[2] || "001"}`,
       reportDate: new Date().toISOString().split("T")[0],
       opinionOutcome: "Clear with Pre-Disbursement Conditions",
@@ -495,37 +623,91 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     return draft;
   };
 
-  const updateReportData = (caseId: string, data: Partial<LSRReportData>) => {
-    const existing = getReportByCaseId(caseId);
+  const updateReportData = async (caseId: string, data: Partial<LSRReportData>) => {
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
+    const existing = getReportByCaseId(resolvedId);
     if (!existing) return;
+
+    if (existing.isSigned) {
+      addToast("Report Locked", "This report is digitally signed. Click 'Amend Report' to make changes.", "warning");
+      return;
+    }
+
     const updated = { ...existing, ...data };
-    const newReports = { ...reports, [caseId]: updated };
+    const newReports = { ...reports, [resolvedId]: updated, [caseId]: updated };
     setReports(newReports);
     saveState("lsr_reports", newReports);
+
     if (backendOnline) {
-      updateReportOnBackend(caseId, data).catch(() => {});
+      const res = await updateReportOnBackend(resolvedId, data);
+      if (!res.success && res.error) {
+        addToast("Report Save Error", res.error, "warning");
+        return;
+      }
     }
-    addToast("Report Saved", "Draft Legal Scrutiny Report updated.", "success");
+    addToast("Report Saved", "Legal Scrutiny Report updated in database.", "success");
   };
 
-  const signReport = (caseId: string) => {
-    const existing = getReportByCaseId(caseId);
+  const signReport = async (caseId: string) => {
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
+    const existing = getReportByCaseId(resolvedId);
     if (!existing) return;
+
+    if (backendOnline) {
+      const res = await signReportOnBackend(resolvedId);
+      if (res.success && res.data) {
+        const newReports = { ...reports, [resolvedId]: res.data, [caseId]: res.data };
+        setReports(newReports);
+        saveState("lsr_reports", newReports);
+        updateCaseStatus(resolvedId, "Completed");
+        addToast("LSR Signed", "Legal Scrutiny Report formally signed and approved by Advocate.", "success");
+        return;
+      }
+    }
+
     const updated: LSRReportData = {
       ...existing,
       isSigned: true,
       signedAt: new Date().toISOString(),
     };
-    const newReports = { ...reports, [caseId]: updated };
+    const newReports = { ...reports, [resolvedId]: updated, [caseId]: updated };
     setReports(newReports);
     saveState("lsr_reports", newReports);
+    updateCaseStatus(resolvedId, "Completed");
+    addToast("LSR Signed", "Legal Scrutiny Report signed.", "success");
+  };
+
+  const amendReport = async (caseId: string) => {
+    const targetCase = getCaseById(caseId);
+    const resolvedId = targetCase?.id || caseId;
 
     if (backendOnline) {
-      signReportOnBackend(caseId).catch(() => {});
+      const res = await amendReportOnBackend(resolvedId);
+      if (res.success && res.data) {
+        const newReports = { ...reports, [resolvedId]: res.data, [caseId]: res.data };
+        setReports(newReports);
+        saveState("lsr_reports", newReports);
+        updateCaseStatus(resolvedId, "Scrutiny Review");
+        addToast("Report Unlocked", "Report unlocked for advocate revision.", "info");
+        return;
+      }
     }
 
-    updateCaseStatus(caseId, "Completed");
-    addToast("LSR Signed", "Legal Scrutiny Report formally signed and approved by Advocate.", "success");
+    const existing = getReportByCaseId(resolvedId);
+    if (existing) {
+      const updated: LSRReportData = {
+        ...existing,
+        isSigned: false,
+        signedAt: undefined,
+      };
+      const newReports = { ...reports, [resolvedId]: updated, [caseId]: updated };
+      setReports(newReports);
+      saveState("lsr_reports", newReports);
+      updateCaseStatus(resolvedId, "Scrutiny Review");
+      addToast("Report Unlocked", "Report unlocked for revision.", "info");
+    }
   };
 
   const updateUserProfile = (profile: Partial<UserProfile>) => {
@@ -556,6 +738,7 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
         backendOnline,
         backendCheckLoading,
         checkBackendConnection,
+        loadCaseDetails,
         getCaseById,
         addCase,
         deleteCase,
@@ -571,9 +754,11 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
         addQueryToCase,
         updateQueryStatus,
         updateQueryText,
+        deleteQuery,
         getReportByCaseId,
         updateReportData,
         signReport,
+        amendReport,
         updateUserProfile,
         updateTemplate,
         markNotificationRead,

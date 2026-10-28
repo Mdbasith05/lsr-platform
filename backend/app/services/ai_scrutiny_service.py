@@ -1,9 +1,11 @@
 import json
 import re
+import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
 
 SYSTEM_LEGAL_PROMPT = """
 You are an expert Indian Property Law & Title Scrutiny advocate.
@@ -25,6 +27,18 @@ RULES FOR CITATION & ACCURACY:
 6. Provide a suggested_query_text (formal requisition for the bank manager) for every critical or warning finding.
 7. Return strictly valid JSON adhering to the requested schema.
 """
+
+VALID_CATEGORIES = {
+    "Chain of Title Break",
+    "Missing Mandatory Document",
+    "Boundary Mismatch",
+    "Name Variation / Identity",
+    "Encumbrance / Charge",
+    "Tax / Revenue Default",
+    "Stamp Duty & Registration",
+}
+
+VALID_SEVERITIES = {"critical", "warning", "info"}
 
 
 class AiScrutinyService:
@@ -61,16 +75,16 @@ class AiScrutinyService:
                     model_name=chosen_model,
                 )
                 if findings:
-                    print(f"[AiScrutinyService] Successfully generated {len(findings)} findings via Gemini ({chosen_model}).")
+                    logger.info(f"[AiScrutinyService] Generated {len(findings)} findings via Gemini ({chosen_model}).")
                     return findings
                 else:
-                    print(f"[AiScrutinyService] Gemini ({chosen_model}) returned no findings. Falling back to deterministic rule engine.")
+                    logger.info(f"[AiScrutinyService] Gemini ({chosen_model}) returned no findings. Falling back to rule engine.")
             except Exception as e:
-                print(f"[AiScrutinyService] Gemini API call error ({chosen_model}): {e}. Executing deterministic legal rule engine.")
+                logger.warning(f"[AiScrutinyService] Gemini API call error ({chosen_model}): {e}. Executing rule engine.")
         else:
-            print("[AiScrutinyService] No active Gemini API key configured. Executing deterministic legal rule engine.")
+            logger.info("[AiScrutinyService] No active Gemini API key configured. Executing rule engine.")
 
-        # Deterministic Legal Rule Engine
+        # Deterministic Legal Rule Engine fallback
         return AiScrutinyService._execute_rule_engine(case_data, documents_with_pages)
 
     @staticmethod
@@ -87,7 +101,8 @@ class AiScrutinyService:
             from google import genai
             from google.genai import types
 
-            client = genai.Client(api_key=api_key)
+            http_opts = types.HttpOptions(timeout=15.0) if hasattr(types, "HttpOptions") else None
+            client = genai.Client(api_key=api_key, http_options=http_opts)
 
             user_prompt = f"""
 Schedule Property Details:
@@ -103,7 +118,6 @@ Please scrutinize the title for 30-year continuity, boundary variances, encumbra
 Respond in valid JSON format with a list of 'findings'.
 """
 
-            # Configure generation options with disabled thinking tokens for fast structured JSON responses
             gen_config = types.GenerateContentConfig(
                 system_instruction=SYSTEM_LEGAL_PROMPT,
                 response_mime_type="application/json",
@@ -121,20 +135,30 @@ Respond in valid JSON format with a list of 'findings'.
             if response.text:
                 data = json.loads(response.text)
                 findings = data.get("findings", data if isinstance(data, list) else [])
-                # Standardize format
                 results = []
                 for idx, f in enumerate(findings):
                     matched_doc = next((d for d in documents_with_pages if d["file_name"] == f.get("source_doc_name")), None)
+                    raw_cat = f.get("category", "Chain of Title Break")
+                    cat = raw_cat if raw_cat in VALID_CATEGORIES else "Chain of Title Break"
+                    raw_sev = (f.get("severity") or "warning").lower()
+                    sev = raw_sev if raw_sev in VALID_SEVERITIES else "warning"
+
+                    raw_conf = f.get("ai_confidence", 0.95)
+                    try:
+                        conf = min(1.0, max(0.0, float(raw_conf)))
+                    except Exception:
+                        conf = 0.95
+
                     results.append({
                         "title": f.get("title", f"Discrepancy #{idx+1}"),
-                        "category": f.get("category", "Chain of Title Break"),
-                        "severity": f.get("severity", "warning"),
+                        "category": cat,
+                        "severity": sev,
                         "description": f.get("description", ""),
                         "source_doc_id": matched_doc["id"] if matched_doc else (documents_with_pages[0]["id"] if documents_with_pages else None),
                         "source_doc_name": f.get("source_doc_name", documents_with_pages[0]["file_name"] if documents_with_pages else "Document.pdf"),
                         "page_number": int(f.get("page_number") or 1),
                         "evidence_snippet": f.get("evidence_snippet", ""),
-                        "ai_confidence": float(f.get("ai_confidence") or 0.95),
+                        "ai_confidence": conf,
                         "suggested_query_text": f.get("suggested_query_text", ""),
                         "lawyer_decision": "pending",
                         "lawyer_notes": "",
@@ -142,7 +166,7 @@ Respond in valid JSON format with a list of 'findings'.
                     })
                 return results
         except Exception as err:
-            print(f"[AiScrutinyService] Gemini execution error with model '{effective_model}': {err}")
+            logger.warning(f"[AiScrutinyService] Gemini execution error with model '{effective_model}': {err}")
             return None
 
     @staticmethod
@@ -155,7 +179,7 @@ Respond in valid JSON format with a list of 'findings'.
         1. 30-year chain continuity.
         2. Boundary match between schedule and primary deed.
         3. Encumbrance Certificate coverage.
-        4. Mandatory revenue records (Khata, Tax receipts).
+        4. Mandatory revenue records.
         """
         findings = []
 
@@ -211,7 +235,7 @@ Respond in valid JSON format with a list of 'findings'.
         east_boundary = case_data.get("boundary_east", "")
         primary_doc = documents_with_pages[0]
         findings.append({
-            "title": f"Schedule Boundary Verification & Recital Match",
+            "title": "Schedule Boundary Verification & Recital Match",
             "category": "Boundary Mismatch",
             "severity": "critical",
             "description": f"Schedule Eastern boundary is specified as '{east_boundary or 'Site No. 15'}'. Prior title recitals show transition from agricultural survey demarcations. Requisition required to confirm layout sanction.",

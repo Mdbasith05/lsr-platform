@@ -175,7 +175,7 @@ function CasesListContent() {
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2">
                             <span className="font-mono font-bold text-[#356AE6] bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 text-[11px]">
-                              {c.id}
+                              {c.caseNumber || c.id}
                             </span>
                             <span className="font-bold text-[#10233F] text-xs">
                               {c.borrowerName}

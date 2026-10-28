@@ -2,6 +2,9 @@ from typing import List, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import json
+from pathlib import Path
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -35,7 +38,7 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-3.8-flash"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=[str(BACKEND_DIR / ".env"), ".env"],
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=True,

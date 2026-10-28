@@ -1,15 +1,25 @@
 import uuid
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import CaseModel, DocumentModel, DocumentPageModel, ScrutinyFindingModel, LSRReportModel
 from app.schemas.schemas import FindingResponse, FindingCreate, FindingUpdate
 from app.services.ai_scrutiny_service import ai_scrutiny_service
-from app.core.security import get_current_user_stub
+from app.core.security import get_current_user_stub, AuthenticatedUser
 
 router = APIRouter(tags=["Scrutiny"])
+
+
+def get_authorized_case(case_id: str, user_id: str, db: Session) -> CaseModel:
+    """Resolves case by UUID or case_number and guarantees tenant isolation."""
+    case = db.query(CaseModel).filter(
+        (CaseModel.id == case_id) | (CaseModel.case_number == case_id)
+    ).first()
+    if not case or case.lawyer_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Case not found")
+    return case
 
 
 def serialize_finding(f: ScrutinyFindingModel) -> FindingResponse:
@@ -37,11 +47,9 @@ def serialize_finding(f: ScrutinyFindingModel) -> FindingResponse:
 def run_ai_scrutiny(
     case_id: str,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user_stub),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
 ):
-    case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not case or case.lawyer_id != user.user_id:
-        raise HTTPException(status_code=404, detail="Case not found")
+    case = get_authorized_case(case_id, user.user_id, db)
 
     prop = case.property
     case_dict = {
@@ -56,7 +64,7 @@ def run_ai_scrutiny(
     }
 
     # Gather documents and pages
-    documents = db.query(DocumentModel).filter(DocumentModel.case_id == case_id).all()
+    documents = db.query(DocumentModel).filter(DocumentModel.case_id == case.id).all()
     docs_payload = []
     for d in documents:
         pages = db.query(DocumentPageModel).filter(DocumentPageModel.document_id == d.id).order_by(DocumentPageModel.page_number.asc()).all()
@@ -74,7 +82,7 @@ def run_ai_scrutiny(
     generated_findings = ai_scrutiny_service.analyze_case_documents(case_dict, docs_payload)
 
     # Persist findings (avoid duplicates with same title)
-    existing_titles = {f.title for f in db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == case_id).all()}
+    existing_titles = {f.title for f in db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == case.id).all()}
     saved_findings = []
 
     for gf in generated_findings:
@@ -83,7 +91,7 @@ def run_ai_scrutiny(
 
         new_f = ScrutinyFindingModel(
             id=f"fnd-{uuid.uuid4().hex[:8]}",
-            case_id=case_id,
+            case_id=case.id,
             source_doc_id=gf.get("source_doc_id"),
             source_doc_name=gf.get("source_doc_name"),
             title=gf["title"],
@@ -101,13 +109,14 @@ def run_ai_scrutiny(
         db.add(new_f)
         saved_findings.append(new_f)
 
-    # Advance case status to Scrutiny Review
-    case.status = "Scrutiny Review"
+    # Advance case status to Scrutiny Review if in earlier stages
+    if case.status in ["Intake", "Document Processing"]:
+        case.status = "Scrutiny Review"
 
     db.commit()
 
     # Return all findings for case
-    all_findings = db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == case_id).order_by(ScrutinyFindingModel.created_at.desc()).all()
+    all_findings = db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == case.id).order_by(ScrutinyFindingModel.created_at.desc()).all()
     return [serialize_finding(f) for f in all_findings]
 
 
@@ -115,35 +124,31 @@ def run_ai_scrutiny(
 def get_case_findings(
     case_id: str,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user_stub),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
 ):
-    case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not case or case.lawyer_id != user.user_id:
-        raise HTTPException(status_code=404, detail="Case not found")
-    findings = db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == case_id).order_by(ScrutinyFindingModel.created_at.desc()).all()
+    case = get_authorized_case(case_id, user.user_id, db)
+    findings = db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == case.id).order_by(ScrutinyFindingModel.created_at.desc()).all()
     return [serialize_finding(f) for f in findings]
 
 
-@router.post("/cases/{case_id}/scrutiny/findings", response_model=FindingResponse, status_code=201)
+@router.post("/cases/{case_id}/scrutiny/findings", response_model=FindingResponse, status_code=status.HTTP_201_CREATED)
 def add_custom_finding(
     case_id: str,
     payload: FindingCreate,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user_stub),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
 ):
-    case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not case or case.lawyer_id != user.user_id:
-        raise HTTPException(status_code=404, detail="Case not found")
+    case = get_authorized_case(case_id, user.user_id, db)
 
     new_f = ScrutinyFindingModel(
         id=f"fnd-{uuid.uuid4().hex[:8]}",
-        case_id=case_id,
+        case_id=case.id,
         source_doc_id=payload.sourceDocId,
         source_doc_name=payload.sourceDocName or "Advocate Chamber Inspection",
-        title=payload.title,
+        title=payload.title.strip(),
         category=payload.category,
         severity=payload.severity,
-        description=payload.description,
+        description=payload.description.strip(),
         page_number=payload.pageNumber,
         evidence_snippet=payload.evidenceSnippet or payload.description,
         ai_confidence=payload.aiConfidence,
@@ -164,24 +169,24 @@ def update_finding(
     finding_id: str,
     payload: FindingUpdate,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user_stub),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
 ):
     f = db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.id == finding_id).first()
     if not f:
-        raise HTTPException(status_code=404, detail="Finding not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found")
 
     case = db.query(CaseModel).filter(CaseModel.id == f.case_id).first()
     if not case or case.lawyer_id != user.user_id:
-        raise HTTPException(status_code=404, detail="Finding not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found")
 
     if payload.decision:
         f.lawyer_decision = payload.decision
         f.reviewed_at = datetime.now(timezone.utc)
 
-        # If decision is accepted, auto-sync with draft LSR report
+        # If decision is accepted, auto-sync with draft LSR report if report exists
         if payload.decision == "accepted":
             report = db.query(LSRReportModel).filter(LSRReportModel.case_id == f.case_id).first()
-            if report:
+            if report and not report.is_signed:
                 conditions = list(report.pre_disbursement_conditions or [])
                 condition_text = f"Advocate Condition: Resolution of {f.title} as per Bank Requisition."
                 if condition_text not in conditions:
@@ -189,9 +194,9 @@ def update_finding(
                     report.pre_disbursement_conditions = conditions
 
     if payload.notes is not None:
-        f.lawyer_notes = payload.notes
+        f.lawyer_notes = payload.notes.strip()
     if payload.title:
-        f.title = payload.title
+        f.title = payload.title.strip()
     if payload.severity:
         f.severity = payload.severity
 

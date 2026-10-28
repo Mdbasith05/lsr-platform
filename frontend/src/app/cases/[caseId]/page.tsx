@@ -26,7 +26,14 @@ function CaseDetailContent() {
     getQueriesByCaseId,
     updateCaseStatus,
     deleteCase,
+    loadCaseDetails,
   } = useCases();
+
+  React.useEffect(() => {
+    if (caseId) {
+      loadCaseDetails(caseId);
+    }
+  }, [caseId, loadCaseDetails]);
 
   const currentCase = getCaseById(caseId);
   const documents = getDocumentsByCaseId(caseId);
@@ -56,9 +63,9 @@ function CaseDetailContent() {
   const acceptedCount = findings.filter((f) => f.lawyerDecision === "accepted").length;
   const pendingCount = findings.filter((f) => f.lawyerDecision === "pending").length;
 
-  const handleDeleteCase = () => {
+  const handleDeleteCase = async () => {
     if (confirm(`Are you sure you want to archive matter ${currentCase.id} (${currentCase.borrowerName})?`)) {
-      deleteCase(currentCase.id);
+      await deleteCase(currentCase.id);
       router.push("/cases");
     }
   };

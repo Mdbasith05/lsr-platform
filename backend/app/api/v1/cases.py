@@ -1,12 +1,21 @@
 import uuid
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.db.models import CaseModel, PropertyModel, DocumentModel, ScrutinyFindingModel, CaseQueryModel, LSRReportModel, ProfileModel
+from app.db.models import (
+    CaseModel,
+    PropertyModel,
+    DocumentModel,
+    ScrutinyFindingModel,
+    CaseQueryModel,
+    LSRReportModel,
+    ProfileModel,
+)
 from app.schemas.schemas import CaseCreate, CaseUpdate, CaseSummary, BoundariesSchema
-from app.core.security import get_current_user_stub
+from app.core.security import get_current_user_stub, AuthenticatedUser
+from app.services.storage_service import storage_service
 
 router = APIRouter(tags=["Cases"])
 
@@ -64,34 +73,52 @@ def serialize_case(c: CaseModel, db: Session) -> CaseSummary:
     )
 
 
+def get_authorized_case(case_id: str, user_id: str, db: Session) -> CaseModel:
+    """Resolves a case by UUID or business case_number while enforcing tenant isolation."""
+    case = db.query(CaseModel).filter(
+        (CaseModel.id == case_id) | (CaseModel.case_number == case_id)
+    ).first()
+    if not case or case.lawyer_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Case not found")
+    return case
+
+
 @router.get("", response_model=List[CaseSummary])
 def list_cases(
-    status: Optional[str] = None,
-    bank: Optional[str] = None,
+    status_filter: Optional[str] = Query(None, alias="status"),
+    bank_filter: Optional[str] = Query(None, alias="bank"),
     db: Session = Depends(get_db),
-    user=Depends(get_current_user_stub),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
 ):
-    # Enforce strict tenant isolation: an advocate can ONLY view their own authorized cases.
     query = db.query(CaseModel).filter(CaseModel.lawyer_id == user.user_id)
-    if status and status != "All":
-        query = query.filter(CaseModel.status == status)
-    if bank and bank != "All":
-        query = query.filter(CaseModel.bank_name == bank)
+    if status_filter and status_filter != "All":
+        query = query.filter(CaseModel.status == status_filter)
+    if bank_filter and bank_filter != "All":
+        query = query.filter(CaseModel.bank_name == bank_filter)
 
     cases = query.order_by(CaseModel.created_at.desc()).all()
     return [serialize_case(c, db) for c in cases]
 
 
-@router.post("", response_model=CaseSummary, status_code=201)
+@router.post("", response_model=CaseSummary, status_code=status.HTTP_201_CREATED)
 def create_case(
     payload: CaseCreate,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user_stub),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
 ):
-    case_num = payload.caseNumber or f"LSR-2026-{uuid.uuid4().hex[:4].upper()}"
-    lawyer_id = user.user_id if user and getattr(user, "user_id", None) else None
+    case_num = payload.caseNumber.strip() if payload.caseNumber else f"LSR-2026-{uuid.uuid4().hex[:4].upper()}"
 
-    # Ensure profile exists in DB so foreign key constraint cases_lawyer_id_fkey is satisfied
+    # Prevent unique constraint crash
+    existing_case = db.query(CaseModel).filter(CaseModel.case_number == case_num).first()
+    if existing_case:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Case number '{case_num}' is already registered in the system."
+        )
+
+    lawyer_id = user.user_id
+
+    # Auto-provision profile record if first time
     if lawyer_id:
         existing_profile = db.query(ProfileModel).filter(ProfileModel.id == lawyer_id).first()
         if not existing_profile:
@@ -99,10 +126,10 @@ def create_case(
             now = datetime.now(timezone.utc)
             db.add(ProfileModel(
                 id=lawyer_id,
-                full_name=user.name or (user.email.split("@")[0].title() if user.email else ""),
+                full_name=user.name or (user.email.split("@")[0].title() if user.email else "Empaneled Advocate"),
                 email=user.email,
-                bar_enrollment_number=meta.get("bar_enrollment_number", ""),
-                chamber_name=meta.get("chamber_name", ""),
+                bar_enrollment_number=meta.get("bar_enrollment_number", "Enrolled Advocate"),
+                chamber_name=meta.get("chamber_name", "Chamber of Advocates"),
                 chamber_address=meta.get("address", ""),
                 phone=meta.get("phone", ""),
                 role=user.role or "Senior Empaneled Advocate",
@@ -114,12 +141,12 @@ def create_case(
     new_case = CaseModel(
         case_number=case_num,
         lawyer_id=lawyer_id,
-        borrower_name=payload.borrowerName,
-        co_borrower_name=payload.coBorrowerName,
-        bank_name=payload.bankName,
-        branch=payload.branch,
-        loan_amount=payload.loanAmount,
-        loan_type=payload.loanType,
+        borrower_name=payload.borrowerName.strip(),
+        co_borrower_name=payload.coBorrowerName.strip() if payload.coBorrowerName else None,
+        bank_name=payload.bankName.strip(),
+        branch=payload.branch.strip(),
+        loan_amount=payload.loanAmount.strip(),
+        loan_type=payload.loanType.strip(),
         status="Intake",
     )
     db.add(new_case)
@@ -128,13 +155,13 @@ def create_case(
     new_prop = PropertyModel(
         case_id=new_case.id,
         property_type=payload.propertyType,
-        property_address=payload.propertyAddress,
-        survey_number=payload.surveyNumber,
-        khata_number=payload.khataNumber,
-        boundary_north=payload.boundaries.north,
-        boundary_south=payload.boundaries.south,
-        boundary_east=payload.boundaries.east,
-        boundary_west=payload.boundaries.west,
+        property_address=payload.propertyAddress.strip(),
+        survey_number=payload.surveyNumber.strip(),
+        khata_number=payload.khataNumber.strip() if payload.khataNumber else None,
+        boundary_north=payload.boundaries.north.strip(),
+        boundary_south=payload.boundaries.south.strip(),
+        boundary_east=payload.boundaries.east.strip(),
+        boundary_west=payload.boundaries.west.strip(),
     )
     db.add(new_prop)
 
@@ -168,11 +195,9 @@ def create_case(
 def get_case(
     case_id: str,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user_stub),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
 ):
-    c = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not c or c.lawyer_id != user.user_id:
-        raise HTTPException(status_code=404, detail="Case not found")
+    c = get_authorized_case(case_id, user.user_id, db)
     return serialize_case(c, db)
 
 
@@ -181,36 +206,63 @@ def update_case(
     case_id: str,
     payload: CaseUpdate,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user_stub),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
 ):
-    c = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not c or c.lawyer_id != user.user_id:
-        raise HTTPException(status_code=404, detail="Case not found")
+    c = get_authorized_case(case_id, user.user_id, db)
 
-    if payload.status:
+    if payload.status is not None:
         c.status = payload.status
-    if payload.borrowerName:
-        c.borrower_name = payload.borrowerName
-    if payload.bankName:
-        c.bank_name = payload.bankName
-    if payload.loanAmount:
-        c.loan_amount = payload.loanAmount
+    if payload.borrowerName is not None:
+        c.borrower_name = payload.borrowerName.strip()
+    if payload.coBorrowerName is not None:
+        c.co_borrower_name = payload.coBorrowerName.strip() or None
+    if payload.bankName is not None:
+        c.bank_name = payload.bankName.strip()
+    if payload.branch is not None:
+        c.branch = payload.branch.strip()
+    if payload.loanAmount is not None:
+        c.loan_amount = payload.loanAmount.strip()
+    if payload.loanType is not None:
+        c.loan_type = payload.loanType.strip()
+
+    # Update associated property details if provided
+    prop = c.property
+    if prop:
+        if payload.propertyAddress is not None:
+            prop.property_address = payload.propertyAddress.strip()
+        if payload.propertyType is not None:
+            prop.property_type = payload.propertyType.strip()
+        if payload.surveyNumber is not None:
+            prop.survey_number = payload.surveyNumber.strip()
+        if payload.khataNumber is not None:
+            prop.khata_number = payload.khataNumber.strip() or None
+        if payload.boundaries is not None:
+            if payload.boundaries.north is not None:
+                prop.boundary_north = payload.boundaries.north.strip()
+            if payload.boundaries.south is not None:
+                prop.boundary_south = payload.boundaries.south.strip()
+            if payload.boundaries.east is not None:
+                prop.boundary_east = payload.boundaries.east.strip()
+            if payload.boundaries.west is not None:
+                prop.boundary_west = payload.boundaries.west.strip()
 
     db.commit()
     db.refresh(c)
     return serialize_case(c, db)
 
 
-@router.delete("/{case_id}", status_code=200)
+@router.delete("/{case_id}", status_code=status.HTTP_200_OK)
 def delete_case(
     case_id: str,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user_stub),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
 ):
-    c = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not c or c.lawyer_id != user.user_id:
-        raise HTTPException(status_code=404, detail="Case not found")
+    c = get_authorized_case(case_id, user.user_id, db)
+
+    # Delete storage files for each document
+    for doc in c.documents:
+        storage_service.delete_document_file(doc.storage_path)
 
     db.delete(c)
     db.commit()
-    return {"success": True, "message": f"Case {case_id} archived"}
+    return {"success": True, "message": f"Case {c.case_number} archived and deleted."}

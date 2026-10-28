@@ -42,7 +42,7 @@ export default function NewCasePage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -61,7 +61,7 @@ export default function NewCasePage() {
 
     setSubmitting(true);
 
-    const newCaseId = addCase({
+    const newCaseId = await addCase({
       caseNumber: caseNumber.trim() || `LSR/${Date.now().toString().slice(-4)}`,
       borrowerName: borrowerName.trim(),
       coBorrowerName: coBorrowerName.trim() || undefined,

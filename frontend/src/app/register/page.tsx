@@ -29,6 +29,7 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const [devConfirmationLink, setDevConfirmationLink] = useState<string | null>(null);
 
   // If already authenticated, redirect to dashboard
   useEffect(() => {
@@ -72,6 +73,9 @@ export default function RegisterPage() {
     if (res.error) {
       setError(res.error);
     } else if (res.requiresEmailConfirmation) {
+      if (res.confirmationLink) {
+        setDevConfirmationLink(res.confirmationLink);
+      }
       setEmailSent(true);
     } else {
       router.push("/dashboard");
@@ -106,6 +110,19 @@ export default function RegisterPage() {
               <p className="text-xs text-slate-600 leading-relaxed">
                 We have registered your advocate profile for <strong>{email}</strong>. Please check your inbox and confirm your email to activate your chamber access.
               </p>
+              {devConfirmationLink && (
+                <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200 text-left space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900 block">
+                    Development Email Verification:
+                  </span>
+                  <a
+                    href={devConfirmationLink}
+                    className="inline-block text-xs text-blue-700 hover:text-blue-900 underline font-medium break-all"
+                  >
+                    Click here to verify email confirmation link directly &rarr;
+                  </a>
+                </div>
+              )}
               <div className="pt-4">
                 <Link
                   href="/login"

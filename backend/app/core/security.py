@@ -2,7 +2,7 @@ import os
 import time
 import logging
 from typing import Optional, Dict
-from fastapi import Header, HTTPException, status
+from fastapi import Header, Query, HTTPException, status
 from pydantic import BaseModel
 from jose import jwt, jwk, JWTError
 import httpx
@@ -88,31 +88,38 @@ jwks_cache = SupabaseJWKSCache(_jwks_url)
 
 
 async def get_current_user(
-    authorization: Optional[str] = Header(None)
+    authorization: Optional[str] = Header(None),
+    token: Optional[str] = Query(None)
 ) -> AuthenticatedUser:
     """
-    Validates Supabase ES256 JWT from the Authorization Bearer header.
+    Validates Supabase ES256 JWT from the Authorization Bearer header or query token.
     Rejects missing, malformed, expired, incorrectly signed, or invalid tokens with HTTP 401.
     Never accepts client-supplied IDs or falls back to hardcoded identities.
     """
-    if not authorization or not authorization.startswith("Bearer "):
+    raw_token = None
+    if authorization:
+        if not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing or malformed Authorization header. Bearer token required.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        raw_token = authorization.split(" ", 1)[1].strip()
+    elif token:
+        raw_token = token.strip()
+
+    if not raw_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or malformed Authorization header. Bearer token required.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = authorization.split(" ", 1)[1].strip()
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Empty bearer token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    token_str = raw_token
 
     # Inspect token header for algorithm and kid
     try:
-        header = jwt.get_unverified_header(token)
+        header = jwt.get_unverified_header(token_str)
     except JWTError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -142,7 +149,7 @@ async def get_current_user(
 
     try:
         payload = jwt.decode(
-            token,
+            token_str,
             pub_key_pem,
             algorithms=["ES256"],
             audience=expected_audience,

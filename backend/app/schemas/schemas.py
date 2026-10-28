@@ -31,8 +31,16 @@ class CaseCreate(BaseModel):
 class CaseUpdate(BaseModel):
     status: Optional[str] = None
     borrowerName: Optional[str] = None
+    coBorrowerName: Optional[str] = None
     bankName: Optional[str] = None
+    branch: Optional[str] = None
     loanAmount: Optional[str] = None
+    loanType: Optional[str] = None
+    propertyAddress: Optional[str] = None
+    propertyType: Optional[str] = None
+    surveyNumber: Optional[str] = None
+    khataNumber: Optional[str] = None
+    boundaries: Optional[BoundariesSchema] = None
 
 
 class CaseSummary(BaseModel):

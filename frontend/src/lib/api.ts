@@ -187,7 +187,7 @@ export async function updateMyProfileOnBackend(
 }
 
 /**
- * Fetch all cases from the backend.
+ * Fetch all authorized cases for the current advocate from the backend.
  */
 export async function fetchCasesFromBackend(): Promise<ApiResponse<Case[]>> {
   try {
@@ -212,6 +212,31 @@ export async function fetchCasesFromBackend(): Promise<ApiResponse<Case[]>> {
 }
 
 /**
+ * Fetch a single case by UUID or case reference number from the backend.
+ */
+export async function fetchCaseByIdFromBackend(caseId: string): Promise<ApiResponse<Case>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to fetch case (HTTP ${res.status})` };
+    }
+
+    const data: Case = await res.json();
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error fetching case",
+    };
+  }
+}
+
+/**
  * Create a new scrutiny case on the backend.
  */
 export async function createCaseOnBackend(
@@ -226,7 +251,8 @@ export async function createCaseOnBackend(
     });
 
     if (!res.ok) {
-      return { success: false, error: `Failed to create case (HTTP ${res.status})` };
+      const errText = await res.text();
+      return { success: false, error: `Failed to create case: ${errText || res.statusText}` };
     }
 
     const data: Case = await res.json();
@@ -235,6 +261,155 @@ export async function createCaseOnBackend(
     return {
       success: false,
       error: err instanceof Error ? err.message : "Error creating case",
+    };
+  }
+}
+
+/**
+ * Update case details or stage status on the backend.
+ */
+export async function updateCaseOnBackend(
+  caseId: string,
+  updates: Record<string, unknown>
+): Promise<ApiResponse<Case>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(updates),
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to update case (HTTP ${res.status})` };
+    }
+
+    const data: Case = await res.json();
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error updating case",
+    };
+  }
+}
+
+/**
+ * Delete / archive a case on the backend.
+ */
+export async function deleteCaseOnBackend(caseId: string): Promise<ApiResponse<{ message: string }>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}`, {
+      method: "DELETE",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to delete case (HTTP ${res.status})` };
+    }
+
+    const data = await res.json();
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error deleting case",
+    };
+  }
+}
+
+/**
+ * Fetch all documents associated with a specific case from the backend.
+ */
+export async function fetchCaseDocumentsFromBackend(caseId: string): Promise<ApiResponse<CaseDocument[]>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}/documents`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to fetch documents (HTTP ${res.status})` };
+    }
+
+    const rawDocs = await res.json();
+    const docs: CaseDocument[] = rawDocs.map((d: Record<string, unknown>) => ({
+      ...d,
+      fileUrl: d.fileUrl ? `${API_BASE_URL}${d.fileUrl}` : undefined,
+    }));
+    return { success: true, data: docs };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error fetching documents",
+    };
+  }
+}
+
+/**
+ * Upload a deed or ancillary document to the backend storage and processing service.
+ */
+export async function uploadDocumentToBackend(
+  caseId: string,
+  file: File,
+  docType: DocumentType
+): Promise<ApiResponse<CaseDocument>> {
+  try {
+    const headers = await getAuthHeaders(false);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("doc_type", docType);
+
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}/documents/upload`,
+      {
+        method: "POST",
+        headers,
+        body: formData,
+      }
+    );
+
+    if (!res.ok) {
+      const errText = await res.text();
+      return { success: false, error: `Failed to upload document: ${errText || res.statusText}` };
+    }
+
+    const data: CaseDocument = await res.json();
+    if (data.fileUrl) {
+      data.fileUrl = `${API_BASE_URL}${data.fileUrl}`;
+    }
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error uploading document",
+    };
+  }
+}
+
+/**
+ * Delete a document from the backend.
+ */
+export async function deleteDocumentOnBackend(docId: string): Promise<ApiResponse<{ message: string }>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/documents/${encodeURIComponent(docId)}`, {
+      method: "DELETE",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to delete document (HTTP ${res.status})` };
+    }
+
+    const data = await res.json();
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error deleting document",
     };
   }
 }
@@ -268,6 +443,60 @@ export async function requestAiScrutiny(caseId: string): Promise<ScrutinyResult>
 }
 
 /**
+ * Fetch all findings for a given case from the backend.
+ */
+export async function fetchCaseFindingsFromBackend(caseId: string): Promise<ApiResponse<ScrutinyFinding[]>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}/scrutiny/findings`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to fetch findings (HTTP ${res.status})` };
+    }
+
+    const findings: ScrutinyFinding[] = await res.json();
+    return { success: true, data: findings };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error fetching findings",
+    };
+  }
+}
+
+/**
+ * Add a manual/custom scrutiny finding on the backend.
+ */
+export async function addFindingOnBackend(
+  caseId: string,
+  findingData: Record<string, unknown>
+): Promise<ApiResponse<ScrutinyFinding>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}/scrutiny/findings`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(findingData),
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to add finding (HTTP ${res.status})` };
+    }
+
+    const data: ScrutinyFinding = await res.json();
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error adding finding",
+    };
+  }
+}
+
+/**
  * Update advocate decision and notes for a specific scrutiny finding.
  */
 export async function updateFindingDecisionOnBackend(
@@ -296,6 +525,31 @@ export async function updateFindingDecisionOnBackend(
     return {
       success: false,
       error: err instanceof Error ? err.message : "Error updating finding",
+    };
+  }
+}
+
+/**
+ * Fetch all bank requisition queries for a case from the backend.
+ */
+export async function fetchCaseQueriesFromBackend(caseId: string): Promise<ApiResponse<CaseQuery[]>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}/queries`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to fetch queries (HTTP ${res.status})` };
+    }
+
+    const queries: CaseQuery[] = await res.json();
+    return { success: true, data: queries };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error fetching queries",
     };
   }
 }
@@ -370,6 +624,56 @@ export async function updateQueryOnBackend(
 }
 
 /**
+ * Delete a bank requisition query from the backend.
+ */
+export async function deleteQueryOnBackend(queryId: string): Promise<ApiResponse<{ message: string }>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/queries/${encodeURIComponent(queryId)}`, {
+      method: "DELETE",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to delete query (HTTP ${res.status})` };
+    }
+
+    const data = await res.json();
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error deleting query",
+    };
+  }
+}
+
+/**
+ * Fetch the draft or signed Legal Scrutiny Report (LSR) from the backend.
+ */
+export async function fetchCaseReportFromBackend(caseId: string): Promise<ApiResponse<LSRReportData>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}/report`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to fetch report (HTTP ${res.status})` };
+    }
+
+    const data: LSRReportData = await res.json();
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error fetching report",
+    };
+  }
+}
+
+/**
  * Update the Draft Legal Scrutiny Report (LSR) data on the backend.
  */
 export async function updateReportOnBackend(
@@ -388,7 +692,8 @@ export async function updateReportOnBackend(
     );
 
     if (!res.ok) {
-      return { success: false, error: `Failed to update report (HTTP ${res.status})` };
+      const errText = await res.text();
+      return { success: false, error: `Failed to update report: ${errText || res.statusText}` };
     }
 
     const report: LSRReportData = await res.json();
@@ -432,38 +737,40 @@ export async function signReportOnBackend(
 }
 
 /**
- * Upload a deed or ancillary document to the backend storage and processing service.
+ * Unlock and amend a previously signed Legal Scrutiny Report on the backend.
  */
-export async function uploadDocumentToBackend(
-  caseId: string,
-  file: File,
-  docType: DocumentType
-): Promise<ApiResponse<CaseDocument>> {
+export async function amendReportOnBackend(
+  caseId: string
+): Promise<ApiResponse<LSRReportData>> {
   try {
-    const headers = await getAuthHeaders(false);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("doc_type", docType);
-
+    const headers = await getAuthHeaders();
     const res = await fetch(
-      `${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}/documents/upload`,
+      `${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}/report/amend`,
       {
         method: "POST",
         headers,
-        body: formData,
       }
     );
 
     if (!res.ok) {
-      return { success: false, error: `Failed to upload document (HTTP ${res.status})` };
+      return { success: false, error: `Failed to amend report (HTTP ${res.status})` };
     }
 
-    const data: CaseDocument = await res.json();
+    const data: LSRReportData = await res.json();
     return { success: true, data };
   } catch (err: unknown) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : "Error uploading document",
+      error: err instanceof Error ? err.message : "Error amending report",
     };
   }
+}
+
+/**
+ * Get authenticated PDF download URL with access token for direct browser downloads.
+ */
+export async function getReportPdfDownloadUrl(caseId: string): Promise<string> {
+  const token = await getSupabaseAccessToken();
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
+  return `${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}/report/export-pdf${tokenParam}`;
 }

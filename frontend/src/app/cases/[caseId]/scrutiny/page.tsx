@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AuthenticatedShell } from "@/components/layout/authenticated-shell";
 import { useCases } from "@/context/case-context";
+import { useAuth } from "@/context/auth-context";
 import { ScrutinyFinding, LawyerDecision, FindingSeverity, CaseDocument, FindingCategory } from "@/types";
 import { WorkflowStepper } from "@/components/workflow-stepper";
 import {
@@ -23,6 +24,7 @@ import {
 function CaseScrutinyContent() {
   const params = useParams();
   const caseId = params.caseId as string;
+  const { session } = useAuth();
   const {
     getCaseById,
     getFindingsByCaseId,
@@ -32,7 +34,14 @@ function CaseScrutinyContent() {
     addCustomFinding,
     triggerScrutinyAnalysis,
     addToast,
+    loadCaseDetails,
   } = useCases();
+
+  React.useEffect(() => {
+    if (caseId) {
+      loadCaseDetails(caseId);
+    }
+  }, [caseId, loadCaseDetails]);
 
   const currentCase = getCaseById(caseId);
   const findings = getFindingsByCaseId(caseId);
@@ -571,7 +580,7 @@ function CaseScrutinyContent() {
               {activeDocument?.fileUrl && viewerTab === "visual" ? (
                 /* Real PDF Live Embed */
                 <iframe
-                  src={`${activeDocument.fileUrl}#page=${activeViewerPage}`}
+                  src={`${activeDocument.fileUrl}${session?.access_token && !activeDocument.fileUrl.includes("token=") ? (activeDocument.fileUrl.includes("?") ? "&" : "?") + "token=" + session.access_token : ""}#page=${activeViewerPage}`}
                   className="w-full h-full min-h-[520px] rounded-xl border border-slate-300 shadow-inner bg-white"
                   title="Document Preview"
                 />

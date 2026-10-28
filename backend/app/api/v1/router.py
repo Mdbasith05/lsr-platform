@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.health import router as health_router
+from app.api.v1.auth import router as auth_router
 from app.api.v1.cases import router as cases_router
 from app.api.v1.documents import router as documents_router
 from app.api.v1.scrutiny import router as scrutiny_router
@@ -11,6 +12,7 @@ api_v1_router = APIRouter()
 
 # Mount all feature routers under /api/v1
 api_v1_router.include_router(health_router, prefix="", tags=["Health"])
+api_v1_router.include_router(auth_router, prefix="", tags=["Auth"])
 api_v1_router.include_router(profile_router, prefix="/profile", tags=["Profile"])
 api_v1_router.include_router(cases_router, prefix="/cases", tags=["Cases"])
 api_v1_router.include_router(documents_router, prefix="", tags=["Documents"])

@@ -29,7 +29,14 @@ function CaseQueriesContent() {
     updateQueryStatus,
     updateQueryText,
     addToast,
+    loadCaseDetails,
   } = useCases();
+
+  React.useEffect(() => {
+    if (caseId) {
+      loadCaseDetails(caseId);
+    }
+  }, [caseId, loadCaseDetails]);
 
   const currentCase = getCaseById(caseId);
   const queries = getQueriesByCaseId(caseId);

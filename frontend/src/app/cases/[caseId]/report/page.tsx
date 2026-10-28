@@ -7,6 +7,8 @@ import { AuthenticatedShell } from "@/components/layout/authenticated-shell";
 import { WorkflowStepper } from "@/components/workflow-stepper";
 import { useCases } from "@/context/case-context";
 import { LegalOpinionOutcome } from "@/types";
+import { getReportPdfDownloadUrl } from "@/lib/api";
+import { useAuth } from "@/context/auth-context";
 import {
   IconArrowLeft,
   IconPrinter,
@@ -21,15 +23,27 @@ import {
 function CaseReportContent() {
   const params = useParams();
   const caseId = params.caseId as string;
+  const { session } = useAuth();
   const {
     getCaseById,
     getDocumentsByCaseId,
     getReportByCaseId,
     updateReportData,
     signReport,
+    amendReport,
     userProfile,
     addToast,
+    loadCaseDetails,
   } = useCases();
+
+  const [downloadUrl, setDownloadUrl] = useState<string>("#");
+
+  React.useEffect(() => {
+    if (caseId) {
+      loadCaseDetails(caseId);
+      getReportPdfDownloadUrl(caseId).then(setDownloadUrl);
+    }
+  }, [caseId, loadCaseDetails, session]);
 
   const currentCase = getCaseById(caseId);
   const documents = getDocumentsByCaseId(caseId);
@@ -146,7 +160,7 @@ function CaseReportContent() {
             </button>
 
             <a
-              href={`http://localhost:8000/api/v1/cases/${caseId}/report/export-pdf`}
+              href={downloadUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-300 text-slate-800 hover:bg-slate-50 text-xs font-bold transition-colors shadow-xs"
@@ -165,9 +179,22 @@ function CaseReportContent() {
                 <span>Advocate Final Sign-Off</span>
               </button>
             ) : (
-              <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-[#16805D] text-xs font-bold shadow-xs">
-                <IconCheck className="w-4 h-4" />
-                <span>Signed &amp; Approved by Advocate</span>
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-[#16805D] text-xs font-bold shadow-xs">
+                  <IconCheck className="w-4 h-4" />
+                  <span>Signed &amp; Approved by Advocate</span>
+                </div>
+                <button
+                  onClick={() => {
+                    if (confirm("Unlock report to make verified amendments? Status will return to Scrutiny Review.")) {
+                      amendReport(caseId);
+                    }
+                  }}
+                  className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-colors shadow-xs"
+                  title="Unlock to revise opinion"
+                >
+                  Amend Report
+                </button>
               </div>
             )}
           </div>

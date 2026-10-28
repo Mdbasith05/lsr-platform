@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AuthenticatedShell } from "@/components/layout/authenticated-shell";
 import { useCases } from "@/context/case-context";
+import { useAuth } from "@/context/auth-context";
 import { DocumentType, CaseDocument } from "@/types";
-import { uploadDocumentToBackend } from "@/lib/api";
+import { uploadDocumentToBackend, API_BASE_URL } from "@/lib/api";
 import { WorkflowStepper } from "@/components/workflow-stepper";
 import {
   IconFileText,
@@ -23,6 +24,7 @@ import {
 function CaseDocumentsContent() {
   const params = useParams();
   const caseId = params.caseId as string;
+  const { session } = useAuth();
   const {
     getCaseById,
     getDocumentsByCaseId,
@@ -30,7 +32,14 @@ function CaseDocumentsContent() {
     deleteDocument,
     backendOnline,
     addToast,
+    loadCaseDetails,
   } = useCases();
+
+  React.useEffect(() => {
+    if (caseId) {
+      loadCaseDetails(caseId);
+    }
+  }, [caseId, loadCaseDetails]);
 
   const currentCase = getCaseById(caseId);
   const documents = getDocumentsByCaseId(caseId);
@@ -108,7 +117,7 @@ function CaseDocumentsContent() {
         subRegistrarOffice: serverDoc?.subRegistrarOffice || subRegistrarOffice,
         pageCount: serverDoc?.pageCount || Math.floor(4 + Math.random() * 12),
         fileSizeBytes: file.size || 2800000,
-        fileUrl: serverDoc?.fileUrl ? `http://localhost:8000${serverDoc.fileUrl}` : blobUrl,
+        fileUrl: serverDoc?.fileUrl ? `${API_BASE_URL}${serverDoc.fileUrl}` : blobUrl,
         isRealFile: true,
         sampleSnippets: serverDoc?.sampleSnippets && serverDoc.sampleSnippets.length > 0 ? serverDoc.sampleSnippets : [
           {
@@ -571,7 +580,7 @@ function CaseDocumentsContent() {
               <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50/50">
                 {previewDoc.fileUrl ? (
                   <iframe
-                    src={previewDoc.fileUrl}
+                    src={previewDoc.fileUrl + (session?.access_token && !previewDoc.fileUrl.includes("token=") ? (previewDoc.fileUrl.includes("?") ? "&" : "?") + "token=" + session.access_token : "")}
                     className="w-full h-96 rounded-xl border border-slate-300 bg-white"
                     title={previewDoc.fileName}
                   />

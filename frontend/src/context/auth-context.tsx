@@ -22,7 +22,7 @@ interface AuthContextType {
   isLoading: boolean;
   isConfigured: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
-  signUp: (email: string, password: string, metadata: SignUpMetadata) => Promise<{ error?: string; requiresEmailConfirmation?: boolean }>;
+  signUp: (email: string, password: string, metadata: SignUpMetadata) => Promise<{ error?: string; requiresEmailConfirmation?: boolean; confirmationLink?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<{ error?: string }>;
   refreshProfile: () => Promise<void>;
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     metadata: SignUpMetadata
-  ): Promise<{ error?: string; requiresEmailConfirmation?: boolean }> => {
+  ): Promise<{ error?: string; requiresEmailConfirmation?: boolean; confirmationLink?: string }> => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -156,6 +156,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
+        // Handle Supabase email rate limits in development by generating an official confirmation link via backend
+        const isRateLimit = error.message?.toLowerCase().includes("rate limit") || (error as any).status === 429;
+        if (isRateLimit) {
+          try {
+            const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+            const devRes = await fetch(`${apiBase}/api/v1/auth/register`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: email.trim(),
+                password,
+                fullName: metadata.fullName,
+                barEnrollmentNumber: metadata.barEnrollmentNumber || "",
+                chamberName: metadata.chamberName || "",
+                phone: metadata.phone || "",
+                address: metadata.address || "",
+              }),
+            });
+            const devData = await devRes.json();
+            if (devRes.ok && devData.success) {
+              setIsLoading(false);
+              return {
+                requiresEmailConfirmation: true,
+                confirmationLink: devData.confirmationLink,
+              };
+            }
+            setIsLoading(false);
+            return { error: devData.detail || "Registration failed." };
+          } catch (devErr: unknown) {
+            setIsLoading(false);
+            return { error: devErr instanceof Error ? devErr.message : "Registration failed." };
+          }
+        }
+
         setIsLoading(false);
         return { error: error.message };
       }
