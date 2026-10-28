@@ -15,11 +15,13 @@ import {
   IconFileText,
 } from "@/components/icons";
 import { useCases } from "@/context/case-context";
+import { useAuth } from "@/context/auth-context";
 
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const { userProfile, cases, backendOnline } = useCases();
+  const { cases, backendOnline } = useCases();
+  const { profile, user } = useAuth();
 
   const activeCasesCount = cases.filter((c) => c.status !== "Completed").length;
 
@@ -186,17 +188,25 @@ export function Sidebar() {
           </div>
         )}
 
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-slate-700 to-slate-600 flex items-center justify-center text-xs font-bold text-slate-100 flex-shrink-0 shadow-xs">
-            {userProfile.name.split(" ").slice(-1)[0][0] || "A"}
-          </div>
-          {!collapsed && (
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-slate-100 truncate">{userProfile.name}</span>
-              <span className="text-[10px] text-slate-400 truncate">{userProfile.role}</span>
+        {(() => {
+          const lawyerName = profile?.name || user?.user_metadata?.full_name || user?.email || "Advocate";
+          const lawyerRole = profile?.role || "Senior Empaneled Advocate";
+          const avatarInitial = (lawyerName.trim().split(" ").slice(-1)[0]?.[0] || lawyerName[0] || "A").toUpperCase();
+
+          return (
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-slate-700 to-slate-600 flex items-center justify-center text-xs font-bold text-slate-100 flex-shrink-0 shadow-xs">
+                {avatarInitial}
+              </div>
+              {!collapsed && (
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-semibold text-slate-100 truncate">{lawyerName}</span>
+                  <span className="text-[10px] text-slate-400 truncate">{lawyerRole}</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
       </div>
     </aside>
   );

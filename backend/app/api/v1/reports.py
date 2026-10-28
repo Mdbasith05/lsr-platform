@@ -22,14 +22,19 @@ def serialize_report(r: LSRReportModel, case: CaseModel) -> ReportResponse:
         f"East: {prop.boundary_east if prop else ''} | West: {prop.boundary_west if prop else ''}"
     )
 
+    lawyer = case.lawyer
+    advocate_name = lawyer.full_name if lawyer else ""
+    bar_enrollment = lawyer.bar_enrollment_number if lawyer else ""
+    chamber_addr = lawyer.chamber_address if lawyer else ""
+
     return ReportResponse(
         caseId=r.case_id,
         reportRefNumber=r.report_ref_number,
         reportDate=r.report_date,
         opinionOutcome=r.opinion_outcome,
-        advocateName="Adv. Rajesh Kumar, B.A.L., LL.B.",
-        barEnrollmentNumber="KAR/1429/2012",
-        chamberAddress="Chamber #402, High Court Lawyers Chambers, Bengaluru - 560001",
+        advocateName=advocate_name,
+        barEnrollmentNumber=bar_enrollment,
+        chamberAddress=chamber_addr,
         propertyDescription=prop_desc,
         boundariesSummary=boundaries,
         chainOfTitleNarrative=r.chain_of_title_narrative or "Devolution of title verified across registered deeds.",
@@ -50,7 +55,7 @@ def get_case_report(
     user=Depends(get_current_user_stub),
 ):
     case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not case:
+    if not case or case.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Case not found")
 
     report = db.query(LSRReportModel).filter(LSRReportModel.case_id == case_id).first()
@@ -68,7 +73,7 @@ def update_case_report(
     user=Depends(get_current_user_stub),
 ):
     case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not case:
+    if not case or case.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Case not found")
 
     report = db.query(LSRReportModel).filter(LSRReportModel.case_id == case_id).first()
@@ -102,7 +107,7 @@ def sign_case_report(
     user=Depends(get_current_user_stub),
 ):
     case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not case:
+    if not case or case.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Case not found")
 
     report = db.query(LSRReportModel).filter(LSRReportModel.case_id == case_id).first()
@@ -125,7 +130,7 @@ def export_case_report_pdf(
     user=Depends(get_current_user_stub),
 ):
     case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not case:
+    if not case or case.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Case not found")
 
     report = db.query(LSRReportModel).filter(LSRReportModel.case_id == case_id).first()
@@ -148,13 +153,18 @@ def export_case_report_pdf(
         "boundary_west": prop.boundary_west if prop else "",
     }
 
+    lawyer = case.lawyer
+    advocate_name = lawyer.full_name if lawyer else ""
+    bar_enrollment = lawyer.bar_enrollment_number if lawyer else ""
+    chamber_addr = lawyer.chamber_address if lawyer else ""
+
     report_dict = {
         "reportRefNumber": report.report_ref_number,
         "reportDate": report.report_date,
         "opinionOutcome": report.opinion_outcome,
-        "advocateName": "Adv. Rajesh Kumar, B.A.L., LL.B.",
-        "barEnrollmentNumber": "KAR/1429/2012",
-        "chamberAddress": "Chamber #402, High Court Lawyers Chambers, Bengaluru - 560001",
+        "advocateName": advocate_name,
+        "barEnrollmentNumber": bar_enrollment,
+        "chamberAddress": chamber_addr,
         "chainOfTitleNarrative": report.chain_of_title_narrative,
         "preDisbursementConditions": report.pre_disbursement_conditions,
         "isSigned": report.is_signed,

@@ -304,16 +304,20 @@ function CaseScrutinyContent() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F8FAFD]">
               {filteredFindings.length === 0 ? (
                 <div className="p-12 text-center space-y-3 bg-white rounded-2xl border border-slate-200">
-                  <IconCheckCircle className="w-8 h-8 text-emerald-500 mx-auto" />
-                  <h3 className="text-sm font-bold text-slate-800">No Discrepancies Match Filter</h3>
-                  <p className="text-xs text-slate-500">
-                    Either no flags match your current filter, or title devolution appears clear.
+                  <IconShield className="w-8 h-8 text-slate-300 mx-auto" />
+                  <h3 className="text-sm font-bold text-slate-800">
+                    {findings.length === 0 ? "No Scrutiny Findings Yet" : "No Discrepancies Match Filter"}
+                  </h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    {findings.length === 0
+                      ? "Upload deeds in the Documents tab and run Title Scrutiny to analyze clauses, boundaries, and encumbrances."
+                      : "Either no flags match your current filter, or title devolution appears clear."}
                   </p>
                   <button
                     onClick={handleRunAiAnalysis}
-                    className="px-4 py-1.5 rounded-xl bg-[#1D5BD8] text-white text-xs font-semibold mt-2"
+                    className="px-4 py-2 rounded-xl bg-[#1D5BD8] hover:bg-[#1547B2] text-white text-xs font-bold mt-2 shadow-xs"
                   >
-                    Trigger Comprehensive Scan
+                    Run Title Scrutiny
                   </button>
                 </div>
               ) : (

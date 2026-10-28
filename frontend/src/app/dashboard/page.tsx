@@ -128,10 +128,10 @@ export default function DashboardPage() {
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#10233F]">
-              Welcome back, {userProfile.name}
+              Welcome back, {userProfile.name || "Advocate"}
             </h1>
             <p className="text-xs text-slate-500 font-medium max-w-xl">
-              {userProfile.chamberName} &mdash; Managing statutory title searches, 30-year chain verifications, and Draft Legal Scrutiny Reports (LSR).
+              {userProfile.chamberName ? `${userProfile.chamberName} — ` : ""}Managing statutory title searches, 30-year chain verifications, and Draft Legal Scrutiny Reports (LSR).
             </p>
           </div>
 
@@ -302,7 +302,25 @@ export default function DashboardPage() {
           {activeCasesList.length === 0 ? (
             <div className="p-12 text-center space-y-3">
               <IconBriefcase className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-xs text-slate-500">No matching title scrutiny files found.</p>
+              <h3 className="text-sm font-bold text-slate-700">
+                {cases.length === 0 ? "No Active Scrutiny Matters" : "No Matching Scrutiny Files"}
+              </h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                {cases.length === 0
+                  ? "Welcome to Lawyer Copilot. Begin by creating your first property scrutiny matter or uploading title deeds."
+                  : "No cases match your search query or bank filter."}
+              </p>
+              {cases.length === 0 && (
+                <div className="pt-2">
+                  <Link
+                    href="/cases/new"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1D5BD8] hover:bg-[#1547B2] text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all"
+                  >
+                    <IconPlus className="w-4 h-4" />
+                    <span>Start First Scrutiny Matter</span>
+                  </Link>
+                </div>
+              )}
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
@@ -441,13 +459,13 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${backendOnline ? "bg-emerald-500" : "bg-amber-400"}`} />
                 <h3 className="font-bold text-sm text-[#10233F]">
-                  {backendOnline ? "FastAPI & Gemini Live" : "Local Demo Intelligence"}
+                  {backendOnline ? "FastAPI Backend Connected" : "Backend Disconnected / Auth Required"}
                 </h3>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed mt-1">
                 {backendOnline
-                  ? "Connected to Python extraction backend on port 8000."
-                  : "Running high-fidelity client-side Indian title discrepancy engine for offline demonstration."}
+                  ? "Connected to Python extraction & Gemini scrutiny service."
+                  : "Backend requires Supabase JWT authentication. Real document scrutiny unavailable offline."}
               </p>
             </div>
             <div className="text-[11px] text-slate-400 font-mono">

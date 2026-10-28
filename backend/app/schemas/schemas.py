@@ -50,12 +50,36 @@ class CaseSummary(BaseModel):
     loanAmount: str
     loanType: str
     status: str
-    assignedLawyer: str = "Adv. Rajesh Kumar"
+    assignedLawyer: str = "Empaneled Advocate"
     createdAt: str
     updatedAt: str
     documentCount: int = 0
     openQueriesCount: int = 0
     findingsCount: Dict[str, int] = Field(default_factory=lambda: {"critical": 0, "warning": 0, "info": 0})
+
+
+# ------------------------------------------------------------------------------
+# Profile Schemas
+# ------------------------------------------------------------------------------
+class ProfileResponse(BaseModel):
+    id: str
+    fullName: str
+    email: Optional[str] = None
+    barEnrollmentNumber: Optional[str] = None
+    chamberName: Optional[str] = None
+    chamberAddress: Optional[str] = None
+    phone: Optional[str] = None
+    role: str = "Senior Empaneled Advocate"
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None
+
+
+class ProfileUpdate(BaseModel):
+    fullName: Optional[str] = None
+    barEnrollmentNumber: Optional[str] = None
+    chamberName: Optional[str] = None
+    chamberAddress: Optional[str] = None
+    phone: Optional[str] = None
 
 
 # ------------------------------------------------------------------------------
@@ -191,9 +215,9 @@ class ReportResponse(BaseModel):
     reportRefNumber: str
     reportDate: str
     opinionOutcome: str
-    advocateName: str = "Adv. Rajesh Kumar, B.A.L., LL.B."
-    barEnrollmentNumber: str = "KAR/1429/2012"
-    chamberAddress: str = "Chamber #402, High Court Lawyers Chambers, Bengaluru - 560001"
+    advocateName: str = "Empaneled Advocate"
+    barEnrollmentNumber: Optional[str] = None
+    chamberAddress: Optional[str] = None
     propertyDescription: str
     boundariesSummary: str
     chainOfTitleNarrative: str

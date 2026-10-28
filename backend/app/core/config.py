@@ -24,13 +24,15 @@ class Settings(BaseSettings):
     ]
 
     # Supabase (Milestone 1 placeholders)
-    SUPABASE_URL: str = ""
+    SUPABASE_URL: str = "https://tintsoyiruagowfkzldw.supabase.co"
     SUPABASE_SERVICE_ROLE_KEY: str = ""
+    SUPABASE_JWT_AUDIENCE: str = "authenticated"
     DATABASE_URL: str = ""
 
-    # AI Configuration (Milestone 4 placeholders)
+    # AI Configuration
     AI_PROVIDER: str = "gemini"
     GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-3.8-flash"
 
     model_config = SettingsConfigDict(
         env_file=".env",

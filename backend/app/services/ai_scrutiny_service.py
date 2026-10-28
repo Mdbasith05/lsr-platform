@@ -32,6 +32,7 @@ class AiScrutinyService:
     def analyze_case_documents(
         case_data: Dict[str, Any],
         documents_with_pages: List[Dict[str, Any]],
+        model_name: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Runs legal scrutiny on extracted document pages using Google Gemini,
@@ -49,13 +50,25 @@ class AiScrutinyService:
 
         # Check if real Gemini API key is configured
         api_key = settings.GEMINI_API_KEY.strip() if settings.GEMINI_API_KEY else ""
+        chosen_model = model_name or settings.GEMINI_MODEL or "gemini-3.8-flash"
         if api_key and "placeholder" not in api_key:
             try:
-                findings = AiScrutinyService._call_gemini_api(api_key, case_data, full_context, documents_with_pages)
+                findings = AiScrutinyService._call_gemini_api(
+                    api_key=api_key,
+                    case_data=case_data,
+                    full_context=full_context,
+                    documents_with_pages=documents_with_pages,
+                    model_name=chosen_model,
+                )
                 if findings:
+                    print(f"[AiScrutinyService] Successfully generated {len(findings)} findings via Gemini ({chosen_model}).")
                     return findings
+                else:
+                    print(f"[AiScrutinyService] Gemini ({chosen_model}) returned no findings. Falling back to deterministic rule engine.")
             except Exception as e:
-                print(f"[AiScrutinyService] Gemini API call error: {e}. Executing deterministic legal rule engine.")
+                print(f"[AiScrutinyService] Gemini API call error ({chosen_model}): {e}. Executing deterministic legal rule engine.")
+        else:
+            print("[AiScrutinyService] No active Gemini API key configured. Executing deterministic legal rule engine.")
 
         # Deterministic Legal Rule Engine
         return AiScrutinyService._execute_rule_engine(case_data, documents_with_pages)
@@ -66,8 +79,10 @@ class AiScrutinyService:
         case_data: Dict[str, Any],
         full_context: str,
         documents_with_pages: List[Dict[str, Any]],
+        model_name: Optional[str] = None,
     ) -> Optional[List[Dict[str, Any]]]:
         """Calls Google Gemini API with structured JSON output."""
+        effective_model = model_name or settings.GEMINI_MODEL or "gemini-3.8-flash"
         try:
             from google import genai
             from google.genai import types
@@ -88,14 +103,19 @@ Please scrutinize the title for 30-year continuity, boundary variances, encumbra
 Respond in valid JSON format with a list of 'findings'.
 """
 
+            # Configure generation options with disabled thinking tokens for fast structured JSON responses
+            gen_config = types.GenerateContentConfig(
+                system_instruction=SYSTEM_LEGAL_PROMPT,
+                response_mime_type="application/json",
+                temperature=0.1,
+            )
+            if hasattr(types, "ThinkingConfig"):
+                gen_config.thinking_config = types.ThinkingConfig(thinking_budget=0)
+
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=effective_model,
                 contents=user_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_LEGAL_PROMPT,
-                    response_mime_type="application/json",
-                    temperature=0.1,
-                ),
+                config=gen_config,
             )
 
             if response.text:
@@ -112,9 +132,9 @@ Respond in valid JSON format with a list of 'findings'.
                         "description": f.get("description", ""),
                         "source_doc_id": matched_doc["id"] if matched_doc else (documents_with_pages[0]["id"] if documents_with_pages else None),
                         "source_doc_name": f.get("source_doc_name", documents_with_pages[0]["file_name"] if documents_with_pages else "Document.pdf"),
-                        "page_number": int(f.get("page_number", 1)),
+                        "page_number": int(f.get("page_number") or 1),
                         "evidence_snippet": f.get("evidence_snippet", ""),
-                        "ai_confidence": float(f.get("ai_confidence", 0.95)),
+                        "ai_confidence": float(f.get("ai_confidence") or 0.95),
                         "suggested_query_text": f.get("suggested_query_text", ""),
                         "lawyer_decision": "pending",
                         "lawyer_notes": "",
@@ -122,7 +142,7 @@ Respond in valid JSON format with a list of 'findings'.
                     })
                 return results
         except Exception as err:
-            print(f"[AiScrutinyService] Gemini execution error: {err}")
+            print(f"[AiScrutinyService] Gemini execution error with model '{effective_model}': {err}")
             return None
 
     @staticmethod

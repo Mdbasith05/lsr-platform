@@ -149,69 +149,6 @@ function CaseDocumentsContent() {
     }
   };
 
-  const handleAddSamplePacket = () => {
-    const sampleDeeds: Array<Omit<CaseDocument, "id" | "caseId" | "uploadedAt" | "status" | "confidenceScore">> = [
-      {
-        fileName: "Absolute_Sale_Deed_2016_Registered.pdf",
-        docType: "Sale Deed / Title Deed",
-        docDate: "2016-08-14",
-        registrationNumber: "BNG-BK1-4192/2016",
-        subRegistrarOffice: "SRO Bommanahalli, Bengaluru",
-        pageCount: 14,
-        fileSizeBytes: 4200000,
-        isRealFile: false,
-        sampleSnippets: [
-          {
-            page: 1,
-            text: "THIS ABSOLUTE SALE DEED executed between Sri M. Venkataswamy (Vendor) and Rajesh Kumar (Purchaser)...",
-          },
-          {
-            page: 6,
-            text: "SCHEDULE: Residential Plot Site No. 14, Sy. No. 74/2, Begur Hobli. Bound on East by: Site No. 15, West by: Site No. 12, North by: Site No. 13, South by: 30 ft Road.",
-          },
-        ],
-      },
-      {
-        fileName: "Mother_Deed_1998_Partition_Conveyance.pdf",
-        docType: "Mother Deed / Prior Deed",
-        docDate: "1998-03-12",
-        registrationNumber: "BNG-BK1-1084/1998",
-        subRegistrarOffice: "SRO Begur, Bengaluru",
-        pageCount: 9,
-        fileSizeBytes: 3100000,
-        isRealFile: false,
-        sampleSnippets: [
-          {
-            page: 3,
-            text: "Prior partition order in family of Muniyappa conveying schedule plot boundaries...",
-          },
-          {
-            page: 8,
-            text: "Bound on East by: Private Agricultural Land of Ramaiah, West by: Site No. 12, North by: Site No. 13, South by: Road.",
-          },
-        ],
-      },
-      {
-        fileName: "Encumbrance_Certificate_Form15_30Years.pdf",
-        docType: "Encumbrance Certificate (EC)",
-        docDate: "2026-02-18",
-        registrationNumber: "EC-2026-90412",
-        subRegistrarOffice: "Kaveri Online Services / SRO",
-        pageCount: 12,
-        fileSizeBytes: 1800000,
-        isRealFile: false,
-        sampleSnippets: [
-          {
-            page: 2,
-            text: "Search period: 1996 to 2026. Nil Encumbrance registered. Non-digitized gap period noted 2008-2009.",
-          },
-        ],
-      },
-    ];
-
-    addDocumentsToCase(caseId, sampleDeeds);
-    addToast("Sample Dossier Added", "3 standard Indian title deeds ingested for scrutiny.", "info");
-  };
 
   if (!currentCase) {
     return (
@@ -279,17 +216,7 @@ function CaseDocumentsContent() {
                 Upload &amp; Organize Title Deeds
               </h1>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={handleAddSamplePacket}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition-colors shadow-xs"
-            >
-              <IconPlus className="w-4 h-4 text-[#1D5BD8]" />
-              <span>Add Sample Deed Packet</span>
-            </button>
-
+          </div>          <div className="flex items-center gap-2.5">
             <Link
               href={`/cases/${caseId}/scrutiny`}
               className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-[#1D5BD8] hover:bg-[#1547B2] text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all"
@@ -506,8 +433,9 @@ function CaseDocumentsContent() {
           {documents.length === 0 ? (
             <div className="p-12 text-center space-y-3">
               <IconFileText className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-xs text-slate-500">
-                No deeds uploaded yet. Drop a PDF above or click &quot;Add Sample Deed Packet&quot;.
+              <h3 className="text-sm font-bold text-slate-700">No Deeds Uploaded Yet</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Drag and drop title deeds (PDF) above or browse from your computer to begin document parsing.
               </p>
             </div>
           ) : (

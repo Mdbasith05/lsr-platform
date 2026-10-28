@@ -17,13 +17,13 @@ import {
 
 export default function NewCasePage() {
   const router = useRouter();
-  const { addCase, addToast } = useCases();
+  const { addCase, userProfile, addToast } = useCases();
 
-  // Form State
+  // Form State - Clean initial state with zero prefilled mock data
   const [bankName, setBankName] = useState("State Bank of India");
-  const [branch, setBranch] = useState("Indiranagar Commercial Branch, Bengaluru");
-  const [caseNumber, setCaseNumber] = useState("SBI/IND/2026/4102");
-  const [loanAmount, setLoanAmount] = useState("₹ 1,25,00,000 (INR 1.25 Crore)");
+  const [branch, setBranch] = useState("");
+  const [caseNumber, setCaseNumber] = useState("");
+  const [loanAmount, setLoanAmount] = useState("");
   const [loanType, setLoanType] = useState("Housing Loan (Home Purchase)");
 
   const [borrowerName, setBorrowerName] = useState("");
@@ -41,27 +41,6 @@ export default function NewCasePage() {
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  // Autofill realistic Bangalore/Indian property case
-  const handleAutofill = () => {
-    setBorrowerName("Girish M. Hegde");
-    setCoBorrowerName("Sunanda G. Hegde");
-    setBankName("State Bank of India");
-    setBranch("Indiranagar Commercial Branch, Bengaluru");
-    setCaseNumber("SBI/IND/2026/8941");
-    setLoanAmount("₹ 1,35,00,000 (INR 1.35 Crore)");
-    setLoanType("Home Purchase Resale Loan");
-    setPropertyType("Independent House / Villa");
-    setSurveyNumber("89/1");
-    setKhataNumber("BBMP/A-Khata/89-01");
-    setPropertyAddress("Site No. 22, Sy. No. 89/1, 4th Main Road, HAL 2nd Stage, Indiranagar, Bengaluru 560038");
-    setBoundaryNorth("Private Site No. 21");
-    setBoundarySouth("30-Foot Main Cross Road");
-    setBoundaryEast("Site No. 23 (Check for layout discrepancy)");
-    setBoundaryWest("Storm Water Drainage Alignment");
-    setError(null);
-    addToast("Autofill Applied", "Loaded realistic Bengaluru property title profile.", "info");
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,24 +66,24 @@ export default function NewCasePage() {
       borrowerName: borrowerName.trim(),
       coBorrowerName: coBorrowerName.trim() || undefined,
       bankName: bankName.trim(),
-      branch: branch.trim(),
+      branch: branch.trim() || "Main Branch",
       propertyAddress: propertyAddress.trim(),
       propertyType,
       surveyNumber: surveyNumber.trim(),
       khataNumber: khataNumber.trim() || undefined,
       boundaries: {
-        north: boundaryNorth.trim() || "Boundary As per deed",
+        north: boundaryNorth.trim() || "As per deed",
         south: boundarySouth.trim() || "Road",
         east: boundaryEast.trim() || "Adjacent Property",
         west: boundaryWest.trim() || "Adjacent Property",
       },
-      loanAmount: loanAmount.trim() || "₹ 50,00,000",
-      loanType: loanType.trim() || "Home Loan",
+      loanAmount: loanAmount.trim() || "To be sanctioned",
+      loanType: loanType.trim() || "Housing Loan / Mortgage Scrutiny",
       status: "Intake",
-      assignedLawyer: "Adv. Sreenivasan Narayanan",
+      assignedLawyer: userProfile.name,
     });
 
-    // Seamlessly transition straight into Document Ingestion
+    // Transition straight into Document Ingestion
     router.push(`/cases/${newCaseId}/documents`);
   };
 
@@ -129,15 +108,6 @@ export default function NewCasePage() {
               </p>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={handleAutofill}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-50 border border-blue-200 text-[#356AE6] hover:bg-blue-100 text-xs font-bold transition-all shadow-xs"
-          >
-            <IconCheck className="w-3.5 h-3.5" />
-            <span>Autofill Demo Property Profile</span>
-          </button>
         </div>
 
         {error && (

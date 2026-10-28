@@ -33,6 +33,7 @@ import {
   updateReportOnBackend,
   signReportOnBackend,
 } from "@/lib/api";
+import { useAuth } from "@/context/auth-context";
 
 export interface NotificationItem {
   id: string;
@@ -81,9 +82,27 @@ interface CaseContextType {
 
 const CaseContext = createContext<CaseContextType | undefined>(undefined);
 
+function purgeLegacyMockStorageOnce() {
+  if (typeof window === "undefined") return;
+  try {
+    const initialized = localStorage.getItem("lsr_clean_initial_v1");
+    if (!initialized) {
+      localStorage.removeItem("lsr_cases");
+      localStorage.removeItem("lsr_documents");
+      localStorage.removeItem("lsr_findings");
+      localStorage.removeItem("lsr_queries");
+      localStorage.removeItem("lsr_reports");
+      localStorage.setItem("lsr_clean_initial_v1", "true");
+    }
+  } catch {
+    // Ignore localStorage access errors
+  }
+}
+
 function getInitialStorage<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
+    purgeLegacyMockStorageOnce();
     const item = localStorage.getItem(key);
     return item ? (JSON.parse(item) as T) : fallback;
   } catch {
@@ -100,27 +119,25 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile>(defaultUserProfile);
   const [templates, setTemplates] = useState<ScrutinyRuleTemplate[]>(defaultScrutinyTemplates);
 
+  const { profile: authProfile, session } = useAuth();
+
+  useEffect(() => {
+    if (authProfile) {
+      setUserProfile(authProfile);
+    } else {
+      setUserProfile(defaultUserProfile);
+      setCases([]);
+      setDocuments([]);
+      setFindings([]);
+      setQueries([]);
+      setReports({});
+    }
+  }, [authProfile]);
+
   const [backendOnline, setBackendOnline] = useState<boolean>(false);
   const [backendCheckLoading, setBackendCheckLoading] = useState<boolean>(false);
 
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: "notif-1",
-      title: "Document Classification Complete",
-      message: "5 property deeds for Case LSR-2026-001 (Rajesh Kumar) were parsed and categorized.",
-      type: "info",
-      timestamp: "10 mins ago",
-      read: false,
-    },
-    {
-      id: "notif-2",
-      title: "Boundary Discrepancy Flag",
-      message: "Critical variance identified between 2016 Sale Deed and 2004 Mother Deed.",
-      type: "warning",
-      timestamp: "1 hour ago",
-      read: false,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const saveState = (key: string, val: unknown) => {
     try {
@@ -146,30 +163,41 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     setBackendCheckLoading(true);
     const result = await checkBackendHealth();
     setBackendOnline(result.online);
-    if (result.online) {
+    if (result.online && session) {
       const remote = await fetchCasesFromBackend();
-      if (remote.success && remote.data && remote.data.length > 0) {
+      if (remote.success && Array.isArray(remote.data)) {
         setCases(remote.data);
       }
     }
     setBackendCheckLoading(false);
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     let active = true;
+
+    if (!session) {
+      setCases([]);
+      setDocuments([]);
+      setFindings([]);
+      setQueries([]);
+      setReports({});
+      return;
+    }
+
     checkBackendHealth().then(async (result) => {
       if (active && result.online) {
         setBackendOnline(true);
         const remote = await fetchCasesFromBackend();
-        if (remote.success && remote.data && remote.data.length > 0) {
+        if (active && remote.success && Array.isArray(remote.data)) {
           setCases(remote.data);
         }
       }
     });
+
     return () => {
       active = false;
     };
-  }, []);
+  }, [session]);
 
   const getCaseById = (caseId: string) => {
     return cases.find((c) => c.id === caseId);
@@ -341,10 +369,12 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
   };
 
   const triggerScrutinyAnalysis = async (caseId: string) => {
-    const c = getCaseById(caseId);
     const caseDocs = getDocumentsByCaseId(caseId);
+    if (caseDocs.length === 0) {
+      addToast("No Deeds Ingested", "Please upload at least one deed PDF before triggering AI scrutiny.", "warning");
+      return;
+    }
 
-    // If backend is online, attempt live call
     if (backendOnline) {
       const res = await requestAiScrutiny(caseId);
       if (res.success && Array.isArray(res.findings) && res.findings.length > 0) {
@@ -353,71 +383,21 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
         const merged = [...serverFindings, ...otherFindings];
         setFindings(merged);
         saveState("lsr_findings", merged);
-        addToast("AI Scrutiny Complete", "Real Gemini / rule scrutiny completed via FastAPI.", "success");
+        updateCaseStatus(caseId, "Scrutiny Review");
+        addToast("AI Scrutiny Complete", "Real legal scrutiny completed via FastAPI.", "success");
+        return;
+      } else if (res.error) {
+        addToast("Scrutiny Service Error", res.error, "warning");
         return;
       }
     }
 
-    // High fidelity domain-specific AI analysis simulation
-    const currentCaseFindings = findings.filter((f) => f.caseId === caseId);
-    if (currentCaseFindings.length === 0) {
-      const generatedFindings: ScrutinyFinding[] = [
-        {
-          id: `fnd-${Date.now()}-1`,
-          caseId,
-          title: `Schedule Boundary Consistency Check for ${c?.propertyType || "Property"}`,
-          category: "Boundary Mismatch",
-          severity: "critical",
-          description: `AI cross-referenced Schedule boundaries for Sy. No. ${c?.surveyNumber || "74/2"}. Eastern boundary in primary deed references layout plots, whereas earlier parent link title recites private adjacent patta land.`,
-          sourceDocId: caseDocs[0]?.id || "doc-sample",
-          sourceDocName: caseDocs[0]?.fileName || "Primary_Title_Deed.pdf",
-          pageNumber: 5,
-          evidenceSnippet: `Schedule Boundary: East by ${c?.boundaries.east || "Site No. 15"}, South by ${c?.boundaries.south || "Road"}. Cross-reference with Prior Recitals shows unverified transition.`,
-          aiConfidence: 0.94,
-          lawyerDecision: "pending",
-          lawyerNotes: "",
-          isAiGenerated: true,
-          suggestedQueryText: `Advocate Requisition: Furnish Approved Layout Plan from Planning Authority establishing demarcation of Eastern boundary abutting Survey No. ${c?.surveyNumber || "74/2"}.`,
-        },
-        {
-          id: `fnd-${Date.now()}-2`,
-          caseId,
-          title: "30-Year Encumbrance Continuous Search Verification",
-          category: "Encumbrance / Charge",
-          severity: "warning",
-          description: "Encumbrance search period verified up to current date. Advise obtaining certified manual extract for any interim non-digitized SRO sub-registry years.",
-          sourceDocId: caseDocs[1]?.id || caseDocs[0]?.id || "doc-sample",
-          sourceDocName: caseDocs[1]?.fileName || "Encumbrance_Certificate.pdf",
-          pageNumber: 2,
-          evidenceSnippet: "Search reflects Nil Encumbrance for inspected computerized index period. Physical SRO register verification recommended.",
-          aiConfidence: 0.92,
-          lawyerDecision: "pending",
-          lawyerNotes: "",
-          isAiGenerated: true,
-          suggestedQueryText: "Borrower/Vendor to produce Certified Form 15 Encumbrance Certificate verified up to the exact date of title search.",
-        },
-      ];
-
-      const updated = [...generatedFindings, ...findings];
-      setFindings(updated);
-      saveState("lsr_findings", updated);
-
-      setCases((prev) =>
-        prev.map((item) =>
-          item.id === caseId
-            ? {
-                ...item,
-                status: "Scrutiny Review" as CaseStatus,
-                findingsCount: { critical: 1, warning: 1, info: 0 },
-              }
-            : item
-        )
-      );
-      addToast("Scrutiny Completed", "AI Document Intelligence identified 2 priority discrepancy flags.", "info");
-    } else {
-      updateCaseStatus(caseId, "Scrutiny Review");
-      addToast("Scrutiny Active", "Existing findings loaded for advocate evaluation.", "info");
-    }
+    // Honest reporting when backend is offline or unauthenticated: do not fake findings
+    addToast(
+      "Backend Authentication Required",
+      "AI Title Scrutiny requires active connection to FastAPI with valid chamber credentials. Real scrutiny output is not available offline.",
+      "warning"
+    );
   };
 
   const getQueriesByCaseId = (caseId: string) => {

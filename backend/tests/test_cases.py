@@ -10,6 +10,22 @@ def test_list_cases():
     assert res.status_code == 200
     cases = res.json()
     assert isinstance(cases, list)
+
+    # If empty in clean initial product state, create a test case to verify list item serialization
+    if len(cases) == 0:
+        create_res = client.post("/api/v1/cases", json={
+            "borrowerName": "Test List Applicant",
+            "bankName": "Bank of Baroda",
+            "branch": "MG Road",
+            "loanAmount": "₹50,00,000",
+            "propertyType": "Residential Plot",
+            "propertyAddress": "Plot 1, Test Layout",
+            "surveyNumber": "10/1",
+        })
+        assert create_res.status_code == 201
+        res = client.get("/api/v1/cases")
+        cases = res.json()
+
     assert len(cases) >= 1
     first = cases[0]
     assert "borrowerName" in first

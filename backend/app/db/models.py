@@ -25,10 +25,10 @@ class ProfileModel(Base):
     __tablename__ = "profiles"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    full_name = Column(String(255), nullable=False, default="Adv. Rajesh Kumar")
+    full_name = Column(String(255), nullable=False, default="Empaneled Advocate")
     email = Column(String(255), nullable=True)
-    bar_enrollment_number = Column(String(100), nullable=False, default="KAR/1429/2012")
-    chamber_name = Column(String(255), nullable=False, default="Chamber of Adv. Rajesh Kumar & Associates")
+    bar_enrollment_number = Column(String(100), nullable=False, default="Pending Verification")
+    chamber_name = Column(String(255), nullable=False, default="Chamber of Advocates")
     chamber_address = Column(Text, nullable=True)
     phone = Column(String(50), nullable=True)
     role = Column(String(100), nullable=False, default="Senior Empaneled Advocate")

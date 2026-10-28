@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -9,30 +9,34 @@ import {
   IconEye,
   IconEyeOff,
   IconShield,
-  IconCheck,
+  IconUser,
 } from "@/components/icons";
+import { useAuth } from "@/context/auth-context";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { signIn, user, isLoading, isConfigured } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAutofillDemo = () => {
-    setEmail("sreenivasan.legal@lsr-platform.local");
-    setPassword("advocate#2026");
-    setError(null);
-  };
+  // If already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, isLoading, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (!email.trim() || !password.trim()) {
-      setError("Please provide both email and chamber access credentials.");
+      setError("Please provide both email and chamber access password.");
       return;
     }
 
@@ -41,12 +45,15 @@ export default function LoginPage() {
       return;
     }
 
-    setLoading(true);
-    // Simulate brief mock authentication
-    setTimeout(() => {
-      setLoading(false);
+    setSubmitting(true);
+    const res = await signIn(email.trim(), password);
+    setSubmitting(false);
+
+    if (res.error) {
+      setError(res.error);
+    } else {
       router.push("/dashboard");
-    }, 600);
+    }
   };
 
   return (
@@ -60,16 +67,28 @@ export default function LoginPage() {
           Lawyer Copilot
         </h2>
         <p className="mt-1 text-xs text-slate-500">
-          Empaneled Title Scrutiny &amp; Legal Report Portal
+          Empaneled Title Scrutiny &amp; Legal Scrutiny Report Portal
         </p>
       </div>
 
       {/* Login Card */}
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-6 shadow-sm border border-slate-200/80 rounded-2xl sm:px-10">
+          {!isConfigured && (
+            <div className="mb-5 rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-900 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-[#10233F]">
+                <IconShield className="w-4 h-4 text-[#356AE6]" />
+                <span>Supabase Auth Configuration</span>
+              </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Connect your live Supabase project by placing your publishable <code className="font-mono bg-blue-100 px-1 rounded text-blue-800">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in <code className="font-mono bg-blue-100 px-1 rounded text-blue-800">frontend/.env.local</code>.
+              </p>
+            </div>
+          )}
+
           {error && (
             <div className="mb-5 rounded-lg bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700 flex items-start gap-2">
-              <span className="font-bold">Notice:</span>
+              <span className="font-bold">Authentication Notice:</span>
               <span>{error}</span>
             </div>
           )}
@@ -84,7 +103,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="advocate@chambers.in"
+                placeholder="advocate@chamber.in"
                 className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#356AE6]/20 focus:border-[#356AE6] transition-all"
               />
             </div>
@@ -128,39 +147,41 @@ export default function LoginPage() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="w-3.5 h-3.5 rounded border-slate-300 text-[#356AE6] focus:ring-[#356AE6]"
                 />
-                <span className="text-xs text-slate-600">Keep session active on this chamber terminal</span>
+                <span className="text-xs text-slate-600">Keep session active on this terminal</span>
               </label>
             </div>
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-[#10233F] hover:bg-[#152e52] text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
             >
-              {loading ? (
+              {submitting ? (
                 <>
                   <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  <span>Verifying Mock Session...</span>
+                  <span>Verifying Supabase Session...</span>
                 </>
               ) : (
                 <>
                   <IconLock className="w-3.5 h-3.5" />
-                  <span>Enter Scrutiny Portal</span>
+                  <span>Sign In with Chamber Account</span>
                 </>
               )}
             </button>
           </form>
 
-          {/* Quick Demo Autofill Helper */}
+          {/* Registration Navigation */}
           <div className="mt-6 pt-5 border-t border-slate-100 text-center">
-            <button
-              type="button"
-              onClick={handleAutofillDemo}
-              className="text-xs text-[#356AE6] hover:text-[#2655C4] font-medium inline-flex items-center gap-1.5"
+            <p className="text-xs text-slate-500 mb-2">
+              New empaneled advocate or legal chamber?
+            </p>
+            <Link
+              href="/register"
+              className="text-xs text-[#356AE6] hover:text-[#2655C4] font-semibold inline-flex items-center gap-1.5 hover:underline"
             >
-              <IconCheck className="w-3.5 h-3.5" />
-              <span>Click to autofill Senior Advocate demo credentials</span>
-            </button>
+              <IconUser className="w-3.5 h-3.5" />
+              <span>Register New Advocate Account &rarr;</span>
+            </Link>
           </div>
         </div>
 
@@ -168,10 +189,10 @@ export default function LoginPage() {
         <div className="mt-6 text-center space-y-1">
           <div className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
             <IconShield className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Demonstration Auth Mode • Real credentials will use Supabase Auth</span>
+            <span>Identity Secured via Supabase Auth &bull; 256-bit Cryptographic JWT</span>
           </div>
           <p className="text-[10px] text-slate-400">
-            Confidential borrower documents and live bank credentials are strictly safeguarded.
+            Confidential borrower title documents and bank scrutiny records are strictly tenant-isolated.
           </p>
         </div>
       </div>

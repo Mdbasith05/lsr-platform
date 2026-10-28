@@ -84,9 +84,9 @@ class ReportService:
         # 1. Chamber Letterhead
         elements.append(Paragraph("CHAMBER OF ADVOCATES & LEGAL CONSULTANTS", title_style))
         elements.append(Paragraph(
-            f"<b>{report_data.get('advocateName', 'Adv. Rajesh Kumar, B.A.L., LL.B.')}</b><br/>"
-            f"Bar Council Enrollment: {report_data.get('barEnrollmentNumber', 'KAR/1429/2012')}<br/>"
-            f"{report_data.get('chamberAddress', 'High Court of Karnataka, Bengaluru')}",
+            f"<b>{report_data.get('advocateName', 'Empaneled Advocate')}</b><br/>"
+            f"Bar Council Enrollment: {report_data.get('barEnrollmentNumber', 'Enrolled Advocate')}<br/>"
+            f"{report_data.get('chamberAddress', 'High Court of Judicature')}",
             subtitle_style,
         ))
         elements.append(Spacer(1, 10))
@@ -173,8 +173,8 @@ class ReportService:
         # Signature
         sign_status = "DIGITALLY SIGNED & CERTIFIED" if report_data.get("isSigned") else "DRAFT REPORT - AWAITING FINAL ADVOCATE SIGN-OFF"
         elements.append(Paragraph(f"<b>Status:</b> {sign_status}", bold_label))
-        elements.append(Paragraph(f"<b>Empaneled Advocate:</b> {report_data.get('advocateName', 'Adv. Rajesh Kumar')}", body_style))
-        elements.append(Paragraph(f"<b>Chamber:</b> High Court of Karnataka, Bengaluru", body_style))
+        elements.append(Paragraph(f"<b>Empaneled Advocate:</b> {report_data.get('advocateName', 'Empaneled Advocate')}", body_style))
+        elements.append(Paragraph(f"<b>Chamber:</b> {report_data.get('chamberAddress', 'High Court of Judicature')}", body_style))
 
         doc.build(elements)
         buffer.seek(0)

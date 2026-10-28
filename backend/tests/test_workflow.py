@@ -76,8 +76,12 @@ def test_complete_end_to_end_workflow():
     assert res_content.headers["content-type"] == "application/pdf"
     assert len(res_content.content) > 100
 
-    # 4. Trigger AI Scrutiny Analysis
-    res_scrutiny = client.post(f"/api/v1/cases/{case_id}/scrutiny/analyze")
+    # 4. Trigger AI Scrutiny Analysis (using deterministic rule engine)
+    from unittest.mock import patch
+    from app.core.config import settings
+
+    with patch.object(settings, "GEMINI_API_KEY", ""):
+        res_scrutiny = client.post(f"/api/v1/cases/{case_id}/scrutiny/analyze")
     assert res_scrutiny.status_code == 200, res_scrutiny.text
     findings = res_scrutiny.json()
     assert len(findings) > 0

@@ -40,7 +40,7 @@ def run_ai_scrutiny(
     user=Depends(get_current_user_stub),
 ):
     case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not case:
+    if not case or case.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Case not found")
 
     prop = case.property
@@ -117,6 +117,9 @@ def get_case_findings(
     db: Session = Depends(get_db),
     user=Depends(get_current_user_stub),
 ):
+    case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
+    if not case or case.lawyer_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Case not found")
     findings = db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == case_id).order_by(ScrutinyFindingModel.created_at.desc()).all()
     return [serialize_finding(f) for f in findings]
 
@@ -129,7 +132,7 @@ def add_custom_finding(
     user=Depends(get_current_user_stub),
 ):
     case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not case:
+    if not case or case.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Case not found")
 
     new_f = ScrutinyFindingModel(
@@ -165,6 +168,10 @@ def update_finding(
 ):
     f = db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.id == finding_id).first()
     if not f:
+        raise HTTPException(status_code=404, detail="Finding not found")
+
+    case = db.query(CaseModel).filter(CaseModel.id == f.case_id).first()
+    if not case or case.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Finding not found")
 
     if payload.decision:

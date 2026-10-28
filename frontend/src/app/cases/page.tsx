@@ -135,10 +135,25 @@ function CasesListContent() {
           {filteredCases.length === 0 ? (
             <div className="p-12 text-center space-y-3">
               <IconBriefcase className="w-8 h-8 text-slate-300 mx-auto" />
-              <h3 className="text-sm font-bold text-slate-700">No Matched Scrutiny Matters</h3>
-              <p className="text-xs text-slate-500">
-                Try adjusting your search criteria or register a new property title matter.
+              <h3 className="text-sm font-bold text-slate-700">
+                {cases.length === 0 ? "No Scrutiny Matters Yet" : "No Matched Scrutiny Matters"}
+              </h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                {cases.length === 0
+                  ? "Your legal scrutiny workspace is clean. Create your first property scrutiny matter to begin document verification."
+                  : "Try adjusting your search criteria or register a new property title matter."}
               </p>
+              {cases.length === 0 && (
+                <div className="pt-2">
+                  <Link
+                    href="/cases/new"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#356AE6] hover:bg-[#2655C4] text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all"
+                  >
+                    <IconPlus className="w-4 h-4" />
+                    <span>Create Your First Scrutiny Matter</span>
+                  </Link>
+                </div>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto divide-y divide-slate-100">

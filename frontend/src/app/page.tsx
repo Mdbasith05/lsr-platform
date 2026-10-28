@@ -14,7 +14,7 @@ import { checkBackendHealth, BackendHealth } from "@/lib/api";
 
 export default function RootHomePage() {
   const [healthData, setHealthData] = useState<BackendHealth | null>(null);
-  const [loadingHealth, setLoadingHealth] = useState(false);
+  const [loadingHealth, setLoadingHealth] = useState(true);
   const [healthError, setHealthError] = useState<string | null>(null);
 
   const pingBackend = async () => {
@@ -23,7 +23,9 @@ export default function RootHomePage() {
     const res = await checkBackendHealth();
     if (res.online && res.data) {
       setHealthData(res.data);
+      setHealthError(null);
     } else {
+      setHealthData(null);
       setHealthError(res.error || "Backend unreachable");
     }
     setLoadingHealth(false);
@@ -31,13 +33,17 @@ export default function RootHomePage() {
 
   useEffect(() => {
     let active = true;
+    setLoadingHealth(true);
     checkBackendHealth().then((res) => {
       if (!active) return;
       if (res.online && res.data) {
         setHealthData(res.data);
+        setHealthError(null);
       } else {
+        setHealthData(null);
         setHealthError(res.error || "Backend unreachable");
       }
+      setLoadingHealth(false);
     });
     return () => {
       active = false;
@@ -86,7 +92,7 @@ export default function RootHomePage() {
           <IconShield className="w-5 h-5 text-[#356AE6] flex-shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <strong className="font-bold text-[#10233F]">
-              Statutory Advocate Opinion Standards ? Human-in-the-Loop Architecture:
+              Statutory Advocate Opinion Standards &bull; Human-in-the-Loop Architecture:
             </strong>
             <p className="text-blue-900/80 leading-relaxed text-[11px]">
               Lawyer Copilot assists advocates in cross-document discrepancy scrutiny, boundary clause verification, and bank requisition formulation. AI provides draft recommendations and grounded page citations; final professional judgment and certificate sign-off always remain exclusively with the Advocate under the Advocates Act, 1961.
@@ -97,7 +103,7 @@ export default function RootHomePage() {
         {/* Hero Title & Primary Entry Points */}
         <div className="text-center max-w-2xl mx-auto space-y-4">
           <span className="inline-block px-3.5 py-1 rounded-full text-xs font-bold bg-blue-100/70 text-[#356AE6] border border-blue-200 shadow-2xs">
-            Empaneled Legal SaaS Portal ? India
+            Empaneled Legal SaaS Portal &bull; India
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#10233F] leading-tight">
             AI-Assisted Property Document Scrutiny for Bank Title Loans
@@ -193,6 +199,13 @@ export default function RootHomePage() {
             </button>
           </div>
 
+          {loadingHealth && !healthData && !healthError && (
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center gap-2">
+              <div className="w-3.5 h-3.5 border-2 border-[#356AE6] border-t-transparent rounded-full animate-spin flex-shrink-0" />
+              <span>Checking FastAPI backend connection status...</span>
+            </div>
+          )}
+
           {healthData && (
             <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-[#16805D] space-y-1">
               <div className="font-bold flex items-center gap-1.5">
@@ -221,7 +234,7 @@ export default function RootHomePage() {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-6 px-6 text-center text-xs text-slate-500">
-        Lawyer Copilot ? AI-Powered Legal Productivity Platform for Lawyers Across India
+        Lawyer Copilot &mdash; AI-Powered Legal Productivity Platform for Lawyers Across India
       </footer>
     </div>
   );

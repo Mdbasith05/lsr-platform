@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/context/auth-context";
 import { CaseProvider } from "@/context/case-context";
 
 export const metadata: Metadata = {
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-[#F4F7FB] text-[#10233F]">
-        <CaseProvider>{children}</CaseProvider>
+        <AuthProvider>
+          <CaseProvider>{children}</CaseProvider>
+        </AuthProvider>
       </body>
     </html>
   );

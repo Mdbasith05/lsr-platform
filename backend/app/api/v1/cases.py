@@ -38,6 +38,8 @@ def serialize_case(c: CaseModel, db: Session) -> CaseSummary:
         west=prop.boundary_west or "" if prop else "",
     )
 
+    lawyer_name = c.lawyer.full_name if c.lawyer else ""
+
     return CaseSummary(
         id=c.id,
         caseNumber=c.case_number,
@@ -53,7 +55,7 @@ def serialize_case(c: CaseModel, db: Session) -> CaseSummary:
         loanAmount=c.loan_amount,
         loanType=c.loan_type,
         status=c.status,
-        assignedLawyer="Adv. Rajesh Kumar",
+        assignedLawyer=lawyer_name,
         createdAt=c.created_at.isoformat() if c.created_at else datetime.now(timezone.utc).isoformat(),
         updatedAt=c.updated_at.isoformat() if c.updated_at else datetime.now(timezone.utc).isoformat(),
         documentCount=doc_count,
@@ -69,7 +71,8 @@ def list_cases(
     db: Session = Depends(get_db),
     user=Depends(get_current_user_stub),
 ):
-    query = db.query(CaseModel)
+    # Enforce strict tenant isolation: an advocate can ONLY view their own authorized cases.
+    query = db.query(CaseModel).filter(CaseModel.lawyer_id == user.user_id)
     if status and status != "All":
         query = query.filter(CaseModel.status == status)
     if bank and bank != "All":
@@ -86,9 +89,31 @@ def create_case(
     user=Depends(get_current_user_stub),
 ):
     case_num = payload.caseNumber or f"LSR-2026-{uuid.uuid4().hex[:4].upper()}"
+    lawyer_id = user.user_id if user and getattr(user, "user_id", None) else None
+
+    # Ensure profile exists in DB so foreign key constraint cases_lawyer_id_fkey is satisfied
+    if lawyer_id:
+        existing_profile = db.query(ProfileModel).filter(ProfileModel.id == lawyer_id).first()
+        if not existing_profile:
+            meta = getattr(user, "user_metadata", {}) or {}
+            now = datetime.now(timezone.utc)
+            db.add(ProfileModel(
+                id=lawyer_id,
+                full_name=user.name or (user.email.split("@")[0].title() if user.email else ""),
+                email=user.email,
+                bar_enrollment_number=meta.get("bar_enrollment_number", ""),
+                chamber_name=meta.get("chamber_name", ""),
+                chamber_address=meta.get("address", ""),
+                phone=meta.get("phone", ""),
+                role=user.role or "Senior Empaneled Advocate",
+                created_at=now,
+                updated_at=now,
+            ))
+            db.flush()
+
     new_case = CaseModel(
         case_number=case_num,
-        lawyer_id=None,
+        lawyer_id=lawyer_id,
         borrower_name=payload.borrowerName,
         co_borrower_name=payload.coBorrowerName,
         bank_name=payload.bankName,
@@ -146,7 +171,7 @@ def get_case(
     user=Depends(get_current_user_stub),
 ):
     c = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not c:
+    if not c or c.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Case not found")
     return serialize_case(c, db)
 
@@ -159,7 +184,7 @@ def update_case(
     user=Depends(get_current_user_stub),
 ):
     c = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not c:
+    if not c or c.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Case not found")
 
     if payload.status:
@@ -183,7 +208,7 @@ def delete_case(
     user=Depends(get_current_user_stub),
 ):
     c = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not c:
+    if not c or c.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Case not found")
 
     db.delete(c)

@@ -40,6 +40,9 @@ def list_case_queries(
     db: Session = Depends(get_db),
     user=Depends(get_current_user_stub),
 ):
+    case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
+    if not case or case.lawyer_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Case not found")
     queries = db.query(CaseQueryModel).filter(CaseQueryModel.case_id == case_id).order_by(CaseQueryModel.created_at.desc()).all()
     return [serialize_query(q, db) for q in queries]
 
@@ -52,7 +55,7 @@ def create_case_query(
     user=Depends(get_current_user_stub),
 ):
     case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not case:
+    if not case or case.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Case not found")
 
     query_count = db.query(CaseQueryModel).filter(CaseQueryModel.case_id == case_id).count()
@@ -90,6 +93,10 @@ def update_query(
     if not q:
         raise HTTPException(status_code=404, detail="Query not found")
 
+    case = db.query(CaseModel).filter(CaseModel.id == q.case_id).first()
+    if not case or case.lawyer_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Query not found")
+
     if payload.status:
         q.status = payload.status
     if payload.lawyerApprovedText is not None:
@@ -110,6 +117,10 @@ def delete_query(
 ):
     q = db.query(CaseQueryModel).filter(CaseQueryModel.id == query_id).first()
     if not q:
+        raise HTTPException(status_code=404, detail="Query not found")
+
+    case = db.query(CaseModel).filter(CaseModel.id == q.case_id).first()
+    if not case or case.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Query not found")
 
     db.delete(q)

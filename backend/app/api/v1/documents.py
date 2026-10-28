@@ -46,7 +46,7 @@ async def upload_document(
     user=Depends(get_current_user_stub),
 ):
     case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
-    if not case:
+    if not case or case.lawyer_id != user.user_id:
         raise HTTPException(status_code=404, detail="Case not found")
 
     file_bytes = await file.read()
@@ -109,6 +109,9 @@ def list_case_documents(
     db: Session = Depends(get_db),
     user=Depends(get_current_user_stub),
 ):
+    case = db.query(CaseModel).filter(CaseModel.id == case_id).first()
+    if not case or case.lawyer_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Case not found")
     docs = db.query(DocumentModel).filter(DocumentModel.case_id == case_id).order_by(DocumentModel.uploaded_at.desc()).all()
     return [serialize_document(d, db) for d in docs]
 
