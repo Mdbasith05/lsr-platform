@@ -55,7 +55,8 @@ def get_authorized_case(case_id: str, user_id: str, db: Session) -> CaseModel:
 
 def serialize_document(d: DocumentModel, db: Session) -> DocumentResponse:
     pages = db.query(DocumentPageModel).filter(DocumentPageModel.document_id == d.id).order_by(DocumentPageModel.page_number.asc()).all()
-    snippets = [DocumentPageSnippet(page=p.page_number, text=p.raw_text[:200]) for p in pages[:4]]
+    # Provide generous page text snippets for all pages so frontend has instant access to real OCR text
+    snippets = [DocumentPageSnippet(page=p.page_number, text=p.raw_text[:2000]) for p in pages]
 
     file_url = f"/api/v1/documents/{d.id}/content"
 
@@ -190,11 +191,50 @@ def get_document_content(
         # Minimal valid PDF fallback
         content = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>>>endobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000052 00000 n \n0000000101 00000 n \ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF"
 
+    media_type = "application/pdf"
+    clean_name = doc.file_name.lower()
+    if clean_name.endswith(".png"):
+        media_type = "image/png"
+    elif clean_name.endswith((".jpg", ".jpeg")):
+        media_type = "image/jpeg"
+    elif clean_name.endswith((".tif", ".tiff")):
+        media_type = "image/tiff"
+
     return Response(
         content=content,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{doc.file_name}"'},
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'inline; filename="{doc.file_name}"',
+            "Cache-Control": "private, max-age=3600",
+            "Accept-Ranges": "bytes",
+        },
     )
+
+
+@router.get("/documents/{doc_id}/pages")
+def get_document_pages(
+    doc_id: str,
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
+):
+    """Returns all extracted raw text and OCR status by page for the specified deed."""
+    doc = db.query(DocumentModel).filter(DocumentModel.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    case = db.query(CaseModel).filter(CaseModel.id == doc.case_id).first()
+    if not case or case.lawyer_id != user.user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    pages = db.query(DocumentPageModel).filter(DocumentPageModel.document_id == doc.id).order_by(DocumentPageModel.page_number.asc()).all()
+    return [
+        {
+            "pageNumber": p.page_number,
+            "rawText": p.raw_text,
+            "ocrApplied": p.ocr_applied,
+        }
+        for p in pages
+    ]
 
 
 @router.get("/documents/{doc_id}/signed-url")

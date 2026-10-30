@@ -54,7 +54,18 @@ async def add_security_headers_and_timing(request: Request, call_next):
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = f"{process_time:.4f}s"
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+
+    # Frame embedding configuration: allow authenticated advocate portal to embed deeds in iframe
+    origins_str = " ".join(settings.CORS_ORIGINS) if settings.CORS_ORIGINS else "'self'"
+    response.headers["Content-Security-Policy"] = f"frame-ancestors 'self' {origins_str}"
+
+    if request.url.path.endswith("/content") or "/documents/" in request.url.path:
+        # Document preview endpoints: rely on frame-ancestors to permit frontend iframe embedding
+        if "X-Frame-Options" in response.headers:
+            del response.headers["X-Frame-Options"]
+    else:
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response

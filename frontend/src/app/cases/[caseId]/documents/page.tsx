@@ -7,7 +7,7 @@ import { AuthenticatedShell } from "@/components/layout/authenticated-shell";
 import { useCases } from "@/context/case-context";
 import { useAuth } from "@/context/auth-context";
 import { DocumentType, CaseDocument } from "@/types";
-import { uploadDocumentToBackend, API_BASE_URL } from "@/lib/api";
+import { uploadDocumentToBackend, API_BASE_URL, formatFileUrl } from "@/lib/api";
 import { WorkflowStepper } from "@/components/workflow-stepper";
 import {
   IconFileText,
@@ -18,6 +18,7 @@ import {
   IconShield,
   IconX,
   IconCheckCircle,
+  IconExternalLink,
 } from "@/components/icons";
 
 function CaseDocumentsContent() {
@@ -115,7 +116,7 @@ function CaseDocumentsContent() {
         subRegistrarOffice: serverDoc?.subRegistrarOffice || subRegistrarOffice,
         pageCount: serverDoc?.pageCount || Math.floor(4 + Math.random() * 12),
         fileSizeBytes: file.size || 2800000,
-        fileUrl: serverDoc?.fileUrl ? `${API_BASE_URL}${serverDoc.fileUrl}` : blobUrl,
+        fileUrl: formatFileUrl(serverDoc?.fileUrl) || blobUrl,
         isRealFile: true,
         sampleSnippets: serverDoc?.sampleSnippets && serverDoc.sampleSnippets.length > 0 ? serverDoc.sampleSnippets : [
           {
@@ -616,21 +617,34 @@ function CaseDocumentsContent() {
                 <div>
                   <h3 className="font-bold text-sm text-[#16325C]">{previewDoc.fileName}</h3>
                   <p className="text-xs text-[#66758A]">
-                    {previewDoc.docType} &bull; Registered: {previewDoc.registrationNumber}
+                    {previewDoc.docType} &bull; Registered: {previewDoc.registrationNumber || "Under Registry Verification"}
                   </p>
                 </div>
-                <button
-                  onClick={() => setPreviewDoc(null)}
-                  className="p-1.5 rounded-lg hover:bg-[#E3E9F2] text-[#66758A] transition-colors"
-                >
-                  <IconX className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {previewDoc.fileUrl && (
+                    <a
+                      href={formatFileUrl(previewDoc.fileUrl) + (session?.access_token && !previewDoc.fileUrl.includes("token=") ? (previewDoc.fileUrl.includes("?") ? "&" : "?") + "token=" + session.access_token : "")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 rounded-lg border border-[#E3E9F2] bg-white text-[#16325C] hover:bg-[#F7F9FC] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+                    >
+                      <IconExternalLink className="w-3.5 h-3.5" />
+                      Open Original PDF
+                    </a>
+                  )}
+                  <button
+                    onClick={() => setPreviewDoc(null)}
+                    className="p-1.5 rounded-lg hover:bg-[#E3E9F2] text-[#66758A] transition-colors"
+                  >
+                    <IconX className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-[#F7F9FC]/50">
                 {previewDoc.fileUrl ? (
                   <iframe
-                    src={previewDoc.fileUrl + (session?.access_token && !previewDoc.fileUrl.includes("token=") ? (previewDoc.fileUrl.includes("?") ? "&" : "?") + "token=" + session.access_token : "")}
+                    src={formatFileUrl(previewDoc.fileUrl) + (session?.access_token && !previewDoc.fileUrl.includes("token=") ? (previewDoc.fileUrl.includes("?") ? "&" : "?") + "token=" + session.access_token : "")}
                     className="w-full h-96 rounded-xl border border-[#E3E9F2] bg-white shadow-xs"
                     title={previewDoc.fileName}
                   />

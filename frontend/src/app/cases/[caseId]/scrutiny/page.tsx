@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AuthenticatedShell } from "@/components/layout/authenticated-shell";
@@ -18,7 +18,10 @@ import {
   IconFileText,
   IconPlus,
   IconScale,
+  IconExternalLink,
+  IconAlertTriangle,
 } from "@/components/icons";
+import { formatFileUrl, fetchDocumentPagesFromBackend } from "@/lib/api";
 
 function CaseScrutinyContent() {
   const params = useParams();
@@ -69,6 +72,15 @@ function CaseScrutinyContent() {
 
   // Active document selection
   const [activeDocOverrideId, setActiveDocOverrideId] = useState<string | null>(null);
+
+  // Genuine extracted document pages state
+  const [documentPages, setDocumentPages] = useState<Record<number, { text: string; ocrApplied: boolean }>>({});
+  const [loadingPages, setLoadingPages] = useState(false);
+
+  // Authenticated PDF blob stream
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const selectedFinding =
     findings.find((f) => f.id === selectedFindingId) || findings[0];
@@ -152,6 +164,99 @@ function CaseScrutinyContent() {
     documents.find((d) => d.id === selectedFinding?.sourceDocId) ||
     documents.find((d) => d.fileName === selectedFinding?.sourceDocName) ||
     documents[0];
+
+  // Fetch full page OCR/vector extractions for active document
+  useEffect(() => {
+    if (!activeDocument?.id) {
+      setDocumentPages({});
+      return;
+    }
+
+    const initialMap: Record<number, { text: string; ocrApplied: boolean }> = {};
+    if (activeDocument.sampleSnippets) {
+      for (const s of activeDocument.sampleSnippets) {
+        initialMap[s.page] = { text: s.text, ocrApplied: false };
+      }
+    }
+    setDocumentPages(initialMap);
+
+    let isMounted = true;
+    setLoadingPages(true);
+    fetchDocumentPagesFromBackend(activeDocument.id)
+      .then((res) => {
+        if (isMounted && res.success && res.data) {
+          const fullMap: Record<number, { text: string; ocrApplied: boolean }> = {};
+          for (const p of res.data) {
+            fullMap[p.pageNumber] = { text: p.rawText, ocrApplied: p.ocrApplied };
+          }
+          setDocumentPages(fullMap);
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoadingPages(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeDocument?.id]);
+
+  // Load authenticated PDF blob stream
+  useEffect(() => {
+    let isMounted = true;
+    let objectUrl: string | null = null;
+
+    async function loadPdfBlob() {
+      if (!activeDocument?.fileUrl) {
+        setPdfBlobUrl(null);
+        setPdfLoading(false);
+        setPdfError(null);
+        return;
+      }
+      setPdfLoading(true);
+      setPdfError(null);
+
+      try {
+        const cleanUrl = formatFileUrl(activeDocument.fileUrl) || activeDocument.fileUrl;
+        const authUrl =
+          cleanUrl +
+          (session?.access_token && !cleanUrl.includes("token=")
+            ? (cleanUrl.includes("?") ? "&" : "?") + "token=" + session.access_token
+            : "");
+
+        const headers: Record<string, string> = {};
+        if (session?.access_token) {
+          headers["Authorization"] = `Bearer ${session.access_token}`;
+        }
+
+        const res = await fetch(authUrl, { headers });
+        if (!res.ok) {
+          throw new Error(`Failed to load document stream (HTTP ${res.status})`);
+        }
+
+        const blob = await res.blob();
+        if (isMounted) {
+          objectUrl = URL.createObjectURL(blob);
+          setPdfBlobUrl(objectUrl);
+          setPdfLoading(false);
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          setPdfError(err instanceof Error ? err.message : "Failed to stream document content");
+          setPdfLoading(false);
+        }
+      }
+    }
+
+    loadPdfBlob();
+
+    return () => {
+      isMounted = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [activeDocument?.id, activeDocument?.fileUrl, session?.access_token]);
 
   if (!currentCase) {
     return (
@@ -512,7 +617,7 @@ function CaseScrutinyContent() {
             {/* Viewer Navigation Bar */}
             <div className="p-3 border-b border-[#E3E9F2] bg-[#F7F9FC] flex items-center justify-between text-xs">
               {/* Document Selector Dropdown */}
-              <div className="flex items-center gap-2 truncate max-w-[240px]">
+              <div className="flex items-center gap-2 truncate max-w-[200px]">
                 <IconFileText className="w-4 h-4 text-[#2457C5] flex-shrink-0" />
                 <select
                   value={activeDocument?.id || ""}
@@ -530,36 +635,60 @@ function CaseScrutinyContent() {
                 </select>
               </div>
 
-              {/* View Switcher Tabs */}
-              <div className="flex items-center gap-1 bg-[#E3E9F2]/70 p-0.5 rounded-lg text-[11px] font-semibold">
-                <button
-                  onClick={() => setViewerTab("visual")}
-                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                    viewerTab === "visual" ? "bg-white text-[#16325C] shadow-xs font-bold" : "text-[#66758A] hover:text-[#172B4D]"
-                  }`}
-                >
-                  Deed View
-                </button>
-                <button
-                  onClick={() => setViewerTab("ocr")}
-                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
-                    viewerTab === "ocr" ? "bg-white text-[#16325C] shadow-xs font-bold" : "text-[#66758A] hover:text-[#172B4D]"
-                  }`}
-                >
-                  OCR / Recitals
-                </button>
+              {/* View Switcher Tabs & Pop Out External Link */}
+              <div className="flex items-center gap-2">
+                {activeDocument?.fileUrl && (
+                  <a
+                    href={
+                      formatFileUrl(activeDocument.fileUrl) +
+                      (session?.access_token && !activeDocument.fileUrl.includes("token=")
+                        ? (activeDocument.fileUrl.includes("?") ? "&" : "?") + "token=" + session.access_token
+                        : "")
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded-lg border border-[#E3E9F2] bg-white text-[#66758A] hover:text-[#16325C] hover:bg-[#F7F9FC] text-[11px] font-medium flex items-center gap-1 transition-colors"
+                    title="Open original document in new tab"
+                  >
+                    <IconExternalLink className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Pop Out</span>
+                  </a>
+                )}
+                <div className="flex items-center gap-1 bg-[#E3E9F2]/70 p-0.5 rounded-lg text-[11px] font-semibold">
+                  <button
+                    onClick={() => setViewerTab("visual")}
+                    className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                      viewerTab === "visual"
+                        ? "bg-white text-[#16325C] shadow-xs font-bold"
+                        : "text-[#66758A] hover:text-[#172B4D]"
+                    }`}
+                  >
+                    Deed View
+                  </button>
+                  <button
+                    onClick={() => setViewerTab("ocr")}
+                    className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                      viewerTab === "ocr"
+                        ? "bg-white text-[#16325C] shadow-xs font-bold"
+                        : "text-[#66758A] hover:text-[#172B4D]"
+                    }`}
+                  >
+                    OCR / Recitals
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Page Navigation Sub-header */}
             <div className="px-4 py-2 border-b border-[#E3E9F2]/60 bg-white flex items-center justify-between text-xs">
               <span className="text-[11px] text-[#66758A]">
-                Grounding: Page {activeViewerPage} of {activeDocument?.pageCount || 14}
+                Grounding: Page {activeViewerPage} of {activeDocument?.pageCount || 1}
               </span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveViewerPage(Math.max(1, activeViewerPage - 1))}
-                  className="px-2.5 py-0.5 rounded-lg border border-[#E3E9F2] hover:bg-[#F7F9FC] text-[11px] font-medium text-[#172B4D] cursor-pointer"
+                  disabled={activeViewerPage <= 1}
+                  className="px-2.5 py-0.5 rounded-lg border border-[#E3E9F2] hover:bg-[#F7F9FC] disabled:opacity-40 text-[11px] font-medium text-[#172B4D] cursor-pointer disabled:cursor-not-allowed"
                 >
                   Prev
                 </button>
@@ -567,8 +696,9 @@ function CaseScrutinyContent() {
                   Page {activeViewerPage}
                 </span>
                 <button
-                  onClick={() => setActiveViewerPage(activeViewerPage + 1)}
-                  className="px-2.5 py-0.5 rounded-lg border border-[#E3E9F2] hover:bg-[#F7F9FC] text-[11px] font-medium text-[#172B4D] cursor-pointer"
+                  onClick={() => setActiveViewerPage(Math.min((activeDocument?.pageCount || 100), activeViewerPage + 1))}
+                  disabled={activeDocument?.pageCount ? activeViewerPage >= activeDocument.pageCount : false}
+                  className="px-2.5 py-0.5 rounded-lg border border-[#E3E9F2] hover:bg-[#F7F9FC] disabled:opacity-40 text-[11px] font-medium text-[#172B4D] cursor-pointer disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -576,91 +706,101 @@ function CaseScrutinyContent() {
             </div>
 
             {/* Document Surface Preview */}
-            <div className="flex-1 bg-[#F7F9FC] p-4 overflow-y-auto">
-              {activeDocument?.fileUrl && viewerTab === "visual" ? (
-                /* Real PDF Live Embed */
-                <iframe
-                  src={`${activeDocument.fileUrl}${session?.access_token && !activeDocument.fileUrl.includes("token=") ? (activeDocument.fileUrl.includes("?") ? "&" : "?") + "token=" + session.access_token : ""}#page=${activeViewerPage}`}
-                  className="w-full h-full min-h-[520px] rounded-xl border border-[#E3E9F2] shadow-inner bg-white"
-                  title="Document Preview"
-                />
-              ) : viewerTab === "ocr" ? (
-                /* OCR / Recitals Plaintext Stream View */
-                <div className="bg-white rounded-xl border border-[#E3E9F2] p-5 font-mono text-[11px] text-[#172B4D] space-y-3 leading-relaxed shadow-xs">
+            <div className="flex-1 bg-[#F7F9FC] p-4 overflow-y-auto min-h-[520px]">
+              {viewerTab === "visual" ? (
+                /* Real PDF Live Embed with Authenticated Stream */
+                pdfLoading ? (
+                  <div className="h-full min-h-[480px] flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-[#E3E9F2]">
+                    <div className="w-7 h-7 border-2 border-[#2457C5] border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs text-[#66758A]">Loading authenticated document stream...</p>
+                  </div>
+                ) : pdfBlobUrl ? (
+                  <iframe
+                    src={`${pdfBlobUrl}#page=${activeViewerPage}`}
+                    className="w-full h-full min-h-[520px] rounded-xl border border-[#E3E9F2] shadow-inner bg-white"
+                    title={activeDocument?.fileName || "Document Preview"}
+                  />
+                ) : pdfError ? (
+                  <div className="h-full min-h-[480px] flex flex-col items-center justify-center p-6 text-center bg-white rounded-xl border border-rose-200 space-y-3">
+                    <IconAlertTriangle className="w-8 h-8 text-amber-500" />
+                    <div>
+                      <h4 className="font-bold text-sm text-[#16325C]">Document Stream Unavailable</h4>
+                      <p className="text-xs text-[#66758A] mt-1">{pdfError}</p>
+                    </div>
+                    {activeDocument?.fileUrl && (
+                      <a
+                        href={formatFileUrl(activeDocument.fileUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-1.5 rounded-lg bg-[#2457C5] text-white text-xs font-semibold hover:bg-[#1B449C] transition-colors"
+                      >
+                        Download / View Document
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-full min-h-[480px] flex flex-col items-center justify-center p-6 text-center bg-white rounded-xl border border-[#E3E9F2] space-y-2">
+                    <IconFileText className="w-8 h-8 text-[#66758A]/50" />
+                    <p className="text-xs text-[#66758A]">No document file uploaded for this record.</p>
+                  </div>
+                )
+              ) : (
+                /* OCR / Recitals Plaintext Stream View (100% Genuine Document Text) */
+                <div className="bg-white rounded-xl border border-[#E3E9F2] p-5 font-mono text-[11px] text-[#172B4D] space-y-3 leading-relaxed shadow-xs min-h-[460px]">
                   <div className="flex items-center justify-between border-b border-[#E3E9F2] pb-2">
                     <span className="font-bold text-[#16325C] uppercase tracking-wider text-[10px]">
-                      Extracted Text Stream (Page {activeViewerPage})
+                      Extracted Text Stream (Page {activeViewerPage} of {activeDocument?.pageCount || 1})
                     </span>
-                    <span className="text-[10px] text-[#16805D] font-semibold bg-[#16805D]/10 px-2 py-0.5 rounded border border-[#16805D]/20">
-                      High Density OCR Match
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                      documentPages[activeViewerPage]?.ocrApplied
+                        ? "text-[#16805D] bg-[#16805D]/10 border-[#16805D]/20"
+                        : "text-[#2457C5] bg-[#2457C5]/10 border-[#2457C5]/20"
+                    }`}>
+                      {documentPages[activeViewerPage]?.ocrApplied ? "RapidOCR Stream" : "Vector Text Stream"}
                     </span>
                   </div>
 
-                  <p className="text-[#172B4D] whitespace-pre-wrap font-sans text-xs">
-                    {selectedFinding?.evidenceSnippet ? (
-                      <>
-                        <span>...and the Vendor further covenants with the Purchaser that the schedule property is free from all encumbrances, attachments, and charges. </span>
-                        <mark className="bg-amber-200/90 text-amber-950 font-semibold px-1 rounded">
-                          {selectedFinding.evidenceSnippet}
-                        </mark>
-                        <span> ...subject to verification of revenue patta records and municipal boundary demarcation.</span>
-                      </>
-                    ) : (
-                      "Text extraction completed. Devolution sequence aligns with schedule recitals."
-                    )}
-                  </p>
-                </div>
-              ) : (
-                /* High Fidelity Registered Deed Preview Sheet */
-                <div className="max-w-md mx-auto bg-white border border-[#E3E9F2] shadow-sm rounded-xl p-6 font-serif text-[11px] text-[#172B4D] space-y-4 relative select-text leading-relaxed">
-                  {/* Government Registry Stamp Header */}
-                  <div className="text-center pb-3 border-b border-[#E3E9F2] space-y-1 font-sans">
-                    <div className="inline-block px-3 py-0.5 rounded border border-[#E3E9F2] bg-[#F7F9FC] font-bold text-[9px] uppercase tracking-widest text-[#66758A]">
-                      Government of Karnataka | Department of Registration
-                    </div>
-                    <h4 className="font-bold text-xs uppercase tracking-wide text-[#16325C] mt-1">
-                      Certified Extract of Registered Conveyance
-                    </h4>
-                    <p className="text-[10px] text-[#66758A] font-mono">
-                      Ref: {activeDocument?.registrationNumber || "BNG(U)-BK1-4192/2016"} | {activeDocument?.subRegistrarOffice || "SRO Office"}
-                    </p>
-                  </div>
+                  {(() => {
+                    const pageData = documentPages[activeViewerPage];
+                    const rawText = pageData?.text || "";
+                    const snippet = selectedFinding?.evidenceSnippet?.trim();
 
-                  {/* Recital Opening */}
-                  <p className="text-[#172B4D] text-justify">
-                    THIS ABSOLUTE CONVEYANCE is executed on the schedule date by the Vendor Sri M. Venkataswamy in favor of the Purchaser Sri Rajesh Kumar conveying all marketable rights, hereditaments, and interest over the subject schedule property free from registered encumbrances, attachments, and mortgage lis pendens...
-                  </p>
+                    if (!rawText) {
+                      return (
+                        <div className="py-12 text-center text-[#66758A] space-y-2">
+                          <p className="font-sans text-xs">
+                            {loadingPages ? "Extracting document pages..." : `No text detected on Page ${activeViewerPage} of ${activeDocument?.fileName || "document"}.`}
+                          </p>
+                          <p className="font-sans text-[11px] text-[#66758A]">
+                            High-density scanned deeds without embedded fonts are processed via RapidOCR.
+                          </p>
+                        </div>
+                      );
+                    }
 
-                  {/* Grounded Evidence Highlight Box */}
-                  <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg relative shadow-xs space-y-1 font-sans">
-                    <div className="flex items-center justify-between text-[9px] font-bold text-amber-900 uppercase tracking-wider">
-                      <span>Highlighted Cited Clause (Page {activeViewerPage})</span>
-                      <span className="font-mono">Match: 94%</span>
-                    </div>
-                    <p className="text-[11px] font-serif text-amber-950 font-bold leading-relaxed">
-                      {selectedFinding?.evidenceSnippet ||
-                        "Schedule: Bound on East by: Site No. 15, West by: Site No. 12, North by: Site No. 13, South by: 30-Foot Road."}
-                    </p>
-                  </div>
+                    if (snippet && rawText.toLowerCase().includes(snippet.toLowerCase())) {
+                      const idx = rawText.toLowerCase().indexOf(snippet.toLowerCase());
+                      const before = rawText.slice(0, idx);
+                      const match = rawText.slice(idx, idx + snippet.length);
+                      const after = rawText.slice(idx + snippet.length);
 
-                  {/* Schedule Description */}
-                  <div className="p-3 rounded-lg bg-[#F7F9FC] border border-[#E3E9F2] space-y-1 font-sans text-[10px]">
-                    <strong className="block text-[#16325C] font-bold uppercase tracking-wider">
-                      Schedule Property Particulars:
-                    </strong>
-                    <div className="grid grid-cols-2 gap-1 text-[#66758A]">
-                      <div>Survey No: {currentCase.surveyNumber}</div>
-                      <div>Property Type: {currentCase.propertyType}</div>
-                      <div>North: {currentCase.boundaries.north}</div>
-                      <div>South: {currentCase.boundaries.south}</div>
-                    </div>
-                  </div>
+                      return (
+                        <div className="text-[#172B4D] whitespace-pre-wrap font-sans text-xs leading-relaxed select-text">
+                          <span>{before}</span>
+                          <mark className="bg-amber-200/90 text-amber-950 font-semibold px-1 rounded border border-amber-300">
+                            {match}
+                          </mark>
+                          <span>{after}</span>
+                        </div>
+                      );
+                    }
 
-                  {/* Stamp Seal Simulation */}
-                  <div className="pt-2 flex items-center justify-between border-t border-[#E3E9F2] text-[10px] text-[#66758A] font-sans">
-                    <span>Sub-Registrar Seal Verified</span>
-                    <span className="font-mono">Page {activeViewerPage}</span>
-                  </div>
+                    return (
+                      <div className="text-[#172B4D] whitespace-pre-wrap font-sans text-xs leading-relaxed select-text">
+                        {rawText}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>

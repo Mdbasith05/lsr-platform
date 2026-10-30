@@ -19,6 +19,17 @@ import { getSupabaseAccessToken } from "@/lib/supabase";
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
+/**
+ * Normalizes document content URLs, strictly preventing double-prefixing.
+ */
+export function formatFileUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
+    return url;
+  }
+  return `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
 export interface BackendHealth {
   status: string;
   app_name: string;
@@ -281,7 +292,7 @@ export async function fetchCaseFullDetailsFromBackend(
       const rawDocs = data.documents || [];
       const docs: CaseDocument[] = rawDocs.map((d: Record<string, unknown>) => ({
         ...d,
-        fileUrl: d.fileUrl ? `${API_BASE_URL}${d.fileUrl}` : undefined,
+        fileUrl: formatFileUrl(d.fileUrl as string),
       }));
 
       return {
@@ -409,7 +420,7 @@ export async function fetchCaseDocumentsFromBackend(caseId: string): Promise<Api
     const rawDocs = await res.json();
     const docs: CaseDocument[] = rawDocs.map((d: Record<string, unknown>) => ({
       ...d,
-      fileUrl: d.fileUrl ? `${API_BASE_URL}${d.fileUrl}` : undefined,
+      fileUrl: formatFileUrl(d.fileUrl as string),
     }));
     return { success: true, data: docs };
   } catch (err: unknown) {
@@ -438,7 +449,7 @@ export async function fetchGlobalDocumentsFromBackend(): Promise<ApiResponse<Cas
     const rawDocs = await res.json();
     const docs: CaseDocument[] = rawDocs.map((d: Record<string, unknown>) => ({
       ...d,
-      fileUrl: d.fileUrl ? `${API_BASE_URL}${d.fileUrl}` : undefined,
+      fileUrl: formatFileUrl(d.fileUrl as string),
     }));
     return { success: true, data: docs };
   } catch (err: unknown) {
@@ -479,13 +490,40 @@ export async function uploadDocumentToBackend(
 
     const data: CaseDocument = await res.json();
     if (data.fileUrl) {
-      data.fileUrl = `${API_BASE_URL}${data.fileUrl}`;
+      data.fileUrl = formatFileUrl(data.fileUrl);
     }
     return { success: true, data };
   } catch (err: unknown) {
     return {
       success: false,
       error: err instanceof Error ? err.message : "Error uploading document",
+    };
+  }
+}
+
+/**
+ * Fetch extracted raw OCR text for all pages of a specific document.
+ */
+export async function fetchDocumentPagesFromBackend(
+  docId: string
+): Promise<ApiResponse<Array<{ pageNumber: number; rawText: string; ocrApplied: boolean }>>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/documents/${encodeURIComponent(docId)}/pages`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to fetch document pages (HTTP ${res.status})` };
+    }
+
+    const data = await res.json();
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error fetching document pages",
     };
   }
 }
