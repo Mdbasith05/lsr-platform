@@ -2,7 +2,7 @@ import uuid
 import re
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response, Query, status
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -139,6 +139,25 @@ async def upload_document(
     db.commit()
     db.refresh(new_doc)
     return serialize_document(new_doc, db)
+
+
+@router.get("/documents", response_model=List[DocumentResponse])
+def list_all_advocate_documents(
+    doc_type: Optional[str] = Query(None, alias="type"),
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
+):
+    """Lists all legal documents across all matters owned by the authenticated advocate."""
+    query = (
+        db.query(DocumentModel)
+        .join(CaseModel, DocumentModel.case_id == CaseModel.id)
+        .filter(CaseModel.lawyer_id == user.user_id)
+    )
+    if doc_type and doc_type != "All":
+        query = query.filter(DocumentModel.doc_type == doc_type)
+
+    docs = query.order_by(DocumentModel.uploaded_at.desc()).all()
+    return [serialize_document(d, db) for d in docs]
 
 
 @router.get("/cases/{case_id}/documents", response_model=List[DocumentResponse])

@@ -70,6 +70,12 @@ def test_newly_registered_user_sees_no_other_advocate_data():
         res_foreign_report = client.get("/api/v1/cases/LSR-2026-001/report")
         assert res_foreign_report.status_code == 404
 
+        # 8. Global listings are strictly empty for the new advocate
+        assert client.get("/api/v1/documents").json() == []
+        assert client.get("/api/v1/queries").json() == []
+        assert client.get("/api/v1/scrutiny/findings").json() == []
+        assert client.get("/api/v1/reports").json() == []
+
     finally:
         app.dependency_overrides.pop(get_current_user, None)
         db = SessionLocal()
@@ -156,6 +162,12 @@ def test_strict_cross_advocate_isolation_between_two_users():
 
         # User B cannot read User A's report
         assert client.get(f"/api/v1/cases/{created_case_id}/report").status_code == 404
+
+        # User B sees zero global records owned by User A
+        assert client.get("/api/v1/documents").json() == []
+        assert client.get("/api/v1/queries").json() == []
+        assert client.get("/api/v1/scrutiny/findings").json() == []
+        assert client.get("/api/v1/reports").json() == []
 
         # Switch back to User A (simulate sign-back-in / refresh)
         app.dependency_overrides[get_current_user] = lambda: user_a

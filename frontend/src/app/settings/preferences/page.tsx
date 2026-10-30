@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { AuthenticatedShell } from "@/components/layout/authenticated-shell";
 import {
@@ -16,8 +16,34 @@ export default function SettingsPreferencesPage() {
   const [density, setDensity] = useState<"compact" | "comfortable">("comfortable");
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("lsr_preferences");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (typeof parsed.notifyOnCritical === "boolean") setNotifyOnCritical(parsed.notifyOnCritical);
+        if (typeof parsed.notifyOnQueryResponse === "boolean") setNotifyOnQueryResponse(parsed.notifyOnQueryResponse);
+        if (parsed.density === "compact" || parsed.density === "comfortable") setDensity(parsed.density);
+      }
+    } catch {
+      // Ignore localStorage access errors
+    }
+  }, []);
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      localStorage.setItem(
+        "lsr_preferences",
+        JSON.stringify({
+          notifyOnCritical,
+          notifyOnQueryResponse,
+          density,
+        })
+      );
+    } catch {
+      // Ignore localStorage write errors
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };

@@ -32,15 +32,19 @@ import {
   updateCaseOnBackend,
   deleteCaseOnBackend,
   fetchCaseDocumentsFromBackend,
+  fetchGlobalDocumentsFromBackend,
   deleteDocumentOnBackend,
   fetchCaseFindingsFromBackend,
+  fetchGlobalFindingsFromBackend,
   addFindingOnBackend,
   updateFindingDecisionOnBackend,
   fetchCaseQueriesFromBackend,
+  fetchGlobalQueriesFromBackend,
   createQueryOnBackend,
   updateQueryOnBackend,
   deleteQueryOnBackend,
   fetchCaseReportFromBackend,
+  fetchGlobalReportsFromBackend,
   updateReportOnBackend,
   signReportOnBackend,
   amendReportOnBackend,
@@ -202,9 +206,37 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     checkBackendHealth().then(async (result) => {
       if (active && result.online) {
         setBackendOnline(true);
-        const remote = await fetchCasesFromBackend();
-        if (active && remote.success && Array.isArray(remote.data)) {
-          setCases(remote.data);
+        // Concurrent hydration of advocate's active workspace across all matters
+        const [casesRes, docsRes, findingsRes, queriesRes, reportsRes] = await Promise.all([
+          fetchCasesFromBackend(),
+          fetchGlobalDocumentsFromBackend(),
+          fetchGlobalFindingsFromBackend(),
+          fetchGlobalQueriesFromBackend(),
+          fetchGlobalReportsFromBackend(),
+        ]);
+
+        if (active) {
+          if (casesRes.success && Array.isArray(casesRes.data)) {
+            setCases(casesRes.data);
+          }
+          if (docsRes.success && Array.isArray(docsRes.data)) {
+            setDocuments(docsRes.data);
+          }
+          if (findingsRes.success && Array.isArray(findingsRes.data)) {
+            setFindings(findingsRes.data);
+          }
+          if (queriesRes.success && Array.isArray(queriesRes.data)) {
+            setQueries(queriesRes.data);
+          }
+          if (reportsRes.success && Array.isArray(reportsRes.data)) {
+            const reportMap: Record<string, LSRReportData> = {};
+            reportsRes.data.forEach((r) => {
+              if (r.caseId) {
+                reportMap[r.caseId] = r;
+              }
+            });
+            setReports(reportMap);
+          }
         }
       }
     });

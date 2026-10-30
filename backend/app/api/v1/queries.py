@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import CaseModel, CaseQueryModel, ScrutinyFindingModel
@@ -42,6 +42,25 @@ def serialize_query(q: CaseQueryModel, db: Session) -> QueryResponse:
         updatedAt=q.updated_at.isoformat() if q.updated_at else datetime.now(timezone.utc).isoformat(),
         responseNotes=None,
     )
+
+
+@router.get("/queries", response_model=List[QueryResponse])
+def list_all_advocate_queries(
+    status_filter: Optional[str] = Query(None, alias="status"),
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
+):
+    """Lists all bank requisition queries across all matters owned by the authenticated advocate."""
+    query = (
+        db.query(CaseQueryModel)
+        .join(CaseModel, CaseQueryModel.case_id == CaseModel.id)
+        .filter(CaseModel.lawyer_id == user.user_id)
+    )
+    if status_filter and status_filter != "All":
+        query = query.filter(CaseQueryModel.status == status_filter)
+
+    queries = query.order_by(CaseQueryModel.created_at.desc()).all()
+    return [serialize_query(q, db) for q in queries]
 
 
 @router.get("/cases/{case_id}/queries", response_model=List[QueryResponse])

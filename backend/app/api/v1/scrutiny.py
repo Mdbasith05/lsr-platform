@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import CaseModel, DocumentModel, DocumentPageModel, ScrutinyFindingModel, LSRReportModel
@@ -131,6 +131,28 @@ def run_ai_scrutiny(
     # Return all findings for case
     all_findings = db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == case.id).order_by(ScrutinyFindingModel.created_at.desc()).all()
     return [serialize_finding(f) for f in all_findings]
+
+
+@router.get("/scrutiny/findings", response_model=List[FindingResponse])
+def list_all_advocate_findings(
+    severity_filter: Optional[str] = Query(None, alias="severity"),
+    decision_filter: Optional[str] = Query(None, alias="decision"),
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
+):
+    """Lists all scrutiny findings across all matters owned by the authenticated advocate."""
+    query = (
+        db.query(ScrutinyFindingModel)
+        .join(CaseModel, ScrutinyFindingModel.case_id == CaseModel.id)
+        .filter(CaseModel.lawyer_id == user.user_id)
+    )
+    if severity_filter and severity_filter != "All":
+        query = query.filter(ScrutinyFindingModel.severity == severity_filter)
+    if decision_filter and decision_filter != "All":
+        query = query.filter(ScrutinyFindingModel.lawyer_decision == decision_filter)
+
+    findings = query.order_by(ScrutinyFindingModel.created_at.desc()).all()
+    return [serialize_finding(f) for f in findings]
 
 
 @router.get("/cases/{case_id}/scrutiny/findings", response_model=List[FindingResponse])

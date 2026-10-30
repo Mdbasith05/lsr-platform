@@ -421,6 +421,35 @@ export async function fetchCaseDocumentsFromBackend(caseId: string): Promise<Api
 }
 
 /**
+ * Fetch all documents across all matters owned by the authenticated advocate.
+ */
+export async function fetchGlobalDocumentsFromBackend(): Promise<ApiResponse<CaseDocument[]>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/documents`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to fetch documents (HTTP ${res.status})` };
+    }
+
+    const rawDocs = await res.json();
+    const docs: CaseDocument[] = rawDocs.map((d: Record<string, unknown>) => ({
+      ...d,
+      fileUrl: d.fileUrl ? `${API_BASE_URL}${d.fileUrl}` : undefined,
+    }));
+    return { success: true, data: docs };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error fetching global documents",
+    };
+  }
+}
+
+/**
  * Upload a deed or ancillary document to the backend storage and processing service.
  */
 export async function uploadDocumentToBackend(
@@ -540,6 +569,31 @@ export async function fetchCaseFindingsFromBackend(caseId: string): Promise<ApiR
 }
 
 /**
+ * Fetch all scrutiny findings across all matters owned by the authenticated advocate.
+ */
+export async function fetchGlobalFindingsFromBackend(): Promise<ApiResponse<ScrutinyFinding[]>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/scrutiny/findings`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to fetch findings (HTTP ${res.status})` };
+    }
+
+    const findings: ScrutinyFinding[] = await res.json();
+    return { success: true, data: findings };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error fetching global findings",
+    };
+  }
+}
+
+/**
  * Add a manual/custom scrutiny finding on the backend.
  */
 export async function addFindingOnBackend(
@@ -622,6 +676,31 @@ export async function fetchCaseQueriesFromBackend(caseId: string): Promise<ApiRe
     return {
       success: false,
       error: err instanceof Error ? err.message : "Error fetching queries",
+    };
+  }
+}
+
+/**
+ * Fetch all bank requisition queries across all matters owned by the authenticated advocate.
+ */
+export async function fetchGlobalQueriesFromBackend(): Promise<ApiResponse<CaseQuery[]>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/queries`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to fetch queries (HTTP ${res.status})` };
+    }
+
+    const queries: CaseQuery[] = await res.json();
+    return { success: true, data: queries };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error fetching global queries",
     };
   }
 }
@@ -741,6 +820,31 @@ export async function fetchCaseReportFromBackend(caseId: string): Promise<ApiRes
     return {
       success: false,
       error: err instanceof Error ? err.message : "Error fetching report",
+    };
+  }
+}
+
+/**
+ * Fetch all draft and finalized LSR reports across all matters owned by the authenticated advocate.
+ */
+export async function fetchGlobalReportsFromBackend(): Promise<ApiResponse<LSRReportData[]>> {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/v1/reports`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!res.ok) {
+      return { success: false, error: `Failed to fetch reports (HTTP ${res.status})` };
+    }
+
+    const data: LSRReportData[] = await res.json();
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error fetching global reports",
     };
   }
 }

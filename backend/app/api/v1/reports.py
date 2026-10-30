@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Response, Query, status
+from sqlalchemy.orm import Session, joinedload
 from app.db.session import get_db
 from app.db.models import CaseModel, LSRReportModel, DocumentModel, ProfileModel
 from app.schemas.schemas import ReportResponse, ReportUpdate
@@ -56,6 +56,28 @@ def serialize_report(r: LSRReportModel, case: CaseModel) -> ReportResponse:
         isSigned=r.is_signed,
         signedAt=r.signed_at.isoformat() if r.signed_at else None,
     )
+
+
+@router.get("/reports", response_model=List[ReportResponse])
+def list_all_advocate_reports(
+    status_filter: Optional[str] = Query(None, alias="status"),
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
+):
+    """Lists all draft and finalized LSR reports across all matters owned by the authenticated advocate."""
+    query = (
+        db.query(LSRReportModel)
+        .join(CaseModel, LSRReportModel.case_id == CaseModel.id)
+        .filter(CaseModel.lawyer_id == user.user_id)
+        .options(joinedload(LSRReportModel.case))
+    )
+    if status_filter == "Signed":
+        query = query.filter(LSRReportModel.is_signed == True)
+    elif status_filter == "Draft":
+        query = query.filter(LSRReportModel.is_signed == False)
+
+    reports = query.order_by(LSRReportModel.updated_at.desc()).all()
+    return [serialize_report(r, r.case) for r in reports if r.case is not None]
 
 
 @router.get("/cases/{case_id}/report", response_model=ReportResponse)
