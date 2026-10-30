@@ -18,7 +18,6 @@ import {
   IconShield,
   IconX,
   IconCheckCircle,
-  IconPlus,
 } from "@/components/icons";
 
 function CaseDocumentsContent() {
@@ -31,7 +30,6 @@ function CaseDocumentsContent() {
     addDocumentsToCase,
     deleteDocument,
     backendOnline,
-    addToast,
     loadCaseDetails,
   } = useCases();
 
@@ -158,16 +156,15 @@ function CaseDocumentsContent() {
     }
   };
 
-
   if (!currentCase) {
     return (
       <AuthenticatedShell>
-        <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-          <h2 className="text-lg font-bold text-slate-800">Case Dossier Not Found</h2>
-          <p className="text-xs text-slate-500 mt-1">Reference {caseId} does not exist in local workspace.</p>
+        <div className="p-12 text-center bg-white rounded-2xl border border-[#E3E9F2]">
+          <h2 className="text-lg font-bold text-[#172B4D]">Case Dossier Not Found</h2>
+          <p className="text-xs text-[#66758A] mt-1">Reference {caseId} does not exist in local workspace.</p>
           <Link
             href="/cases"
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#10233F] text-white text-xs font-bold rounded-xl"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#16325C] text-white text-xs font-bold rounded-xl hover:bg-[#112442] transition-colors"
           >
             <IconArrowLeft className="w-4 h-4" />
             <span>Return to All Matters</span>
@@ -207,28 +204,30 @@ function CaseDocumentsContent() {
           <div className="flex items-center gap-3">
             <Link
               href={`/cases/${caseId}`}
-              className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors shadow-xs"
+              className="p-2.5 rounded-xl border border-[#E3E9F2] bg-white text-[#66758A] hover:text-[#172B4D] hover:bg-[#F7F9FC] transition-colors shadow-xs"
+              title="Return to Case Overview"
             >
               <IconArrowLeft className="w-4 h-4" />
             </Link>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold text-[#1D5BD8] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs font-bold text-[#2457C5] bg-[#EEF4FF] px-2 py-0.5 rounded border border-[#2457C5]/20">
                   {currentCase.id}
                 </span>
-                <span className="text-slate-300">|</span>
-                <span className="text-xs font-bold text-slate-700">{currentCase.borrowerName}</span>
-                <span className="text-slate-300">|</span>
-                <span className="text-xs text-slate-500">{currentCase.bankName}</span>
+                <span className="text-[#E3E9F2]">|</span>
+                <span className="text-xs font-bold text-[#172B4D]">{currentCase.borrowerName}</span>
+                <span className="text-[#E3E9F2]">|</span>
+                <span className="text-xs text-[#66758A] font-medium">{currentCase.bankName}</span>
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-[#10233F] mt-0.5">
+              <h1 className="text-2xl font-extrabold tracking-tight text-[#16325C] mt-1">
                 Upload &amp; Organize Title Deeds
               </h1>
             </div>
-          </div>          <div className="flex items-center gap-2.5">
+          </div>
+          <div className="flex items-center gap-2.5">
             <Link
               href={`/cases/${caseId}/scrutiny`}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-[#1D5BD8] hover:bg-[#1547B2] text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2457C5] hover:bg-[#1B449E] text-white text-xs font-bold shadow-md shadow-[#2457C5]/20 transition-all"
             >
               <span>Launch AI Scrutiny</span>
               <IconArrowRight className="w-4 h-4" />
@@ -239,51 +238,51 @@ function CaseDocumentsContent() {
         {/* =========================================================================
             2. WHAT DOCUMENTS SHOULD A LAWYER UPLOAD? (Educational Guidance Cards)
            ========================================================================= */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+        <div className="bg-white rounded-2xl border border-[#E3E9F2] shadow-xs p-5 space-y-3">
+          <div className="flex items-center justify-between border-b border-[#E3E9F2]/60 pb-2">
             <div className="flex items-center gap-2">
-              <IconShield className="w-4 h-4 text-[#1D5BD8]" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#10233F]">
+              <IconShield className="w-4 h-4 text-[#2457C5]" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#16325C]">
                 Standard 30-Year Title Search Checklist (India)
               </h3>
             </div>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-[#66758A]">
               Upload at least the Sale Deed &amp; 1 Prior Link Deed
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-              <span className="font-bold text-slate-800 block text-[11px]">1. Primary Title Deed</span>
-              <p className="text-[10px] text-slate-500 leading-relaxed">
+            <div className="p-3 rounded-xl bg-[#F7F9FC] border border-[#E3E9F2] space-y-1">
+              <span className="font-bold text-[#172B4D] block text-[11px]">1. Primary Title Deed</span>
+              <p className="text-[10px] text-[#66758A] leading-relaxed">
                 Registered Absolute Sale Deed conveying title to present borrower.
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-              <span className="font-bold text-slate-800 block text-[11px]">2. Prior Mother Deeds</span>
-              <p className="text-[10px] text-slate-500 leading-relaxed">
+            <div className="p-3 rounded-xl bg-[#F7F9FC] border border-[#E3E9F2] space-y-1">
+              <span className="font-bold text-[#172B4D] block text-[11px]">2. Prior Mother Deeds</span>
+              <p className="text-[10px] text-[#66758A] leading-relaxed">
                 Earlier partition deeds, sale deeds, or grant orders establishing 30-year flow.
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-              <span className="font-bold text-slate-800 block text-[11px]">3. Encumbrance Cert (EC)</span>
-              <p className="text-[10px] text-slate-500 leading-relaxed">
+            <div className="p-3 rounded-xl bg-[#F7F9FC] border border-[#E3E9F2] space-y-1">
+              <span className="font-bold text-[#172B4D] block text-[11px]">3. Encumbrance Cert (EC)</span>
+              <p className="text-[10px] text-[#66758A] leading-relaxed">
                 Kaveri / SRO Form 15 verifying Nil encumbrance or registered charges.
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-              <span className="font-bold text-slate-800 block text-[11px]">4. Revenue &amp; Khata</span>
-              <p className="text-[10px] text-slate-500 leading-relaxed">
+            <div className="p-3 rounded-xl bg-[#F7F9FC] border border-[#E3E9F2] space-y-1">
+              <span className="font-bold text-[#172B4D] block text-[11px]">4. Revenue &amp; Khata</span>
+              <p className="text-[10px] text-[#66758A] leading-relaxed">
                 BBMP A-Khata, RTC, Patta certificate, and latest tax paid receipt.
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-              <span className="font-bold text-slate-800 block text-[11px]">5. Sanctioned Plan</span>
-              <p className="text-[10px] text-slate-500 leading-relaxed">
+            <div className="p-3 rounded-xl bg-[#F7F9FC] border border-[#E3E9F2] space-y-1">
+              <span className="font-bold text-[#172B4D] block text-[11px]">5. Sanctioned Plan</span>
+              <p className="text-[10px] text-[#66758A] leading-relaxed">
                 Approved layout / building plan from BDA, BMRDA, or municipal body.
               </p>
             </div>
@@ -293,23 +292,23 @@ function CaseDocumentsContent() {
         {/* =========================================================================
             3. LARGE DRAG-AND-DROP UPLOAD ZONE WITH "BROWSE FILES" BUTTON
            ========================================================================= */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div className="bg-white rounded-2xl border border-[#E3E9F2] shadow-xs p-6 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E3E9F2]/60 pb-4">
             <div>
-              <h2 className="text-base font-extrabold text-[#10233F]">
+              <h2 className="text-base font-extrabold text-[#16325C]">
                 Drag and Drop Legal Documents
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#66758A]">
                 Support for multi-page registered PDF deeds, Form 15 extracts, and revenue records.
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold text-slate-500">Deed Category:</span>
+              <span className="text-[11px] font-bold text-[#66758A]">Deed Category:</span>
               <select
                 value={selectedDocType}
                 onChange={(e) => setSelectedDocType(e.target.value as DocumentType)}
-                className="py-1.5 px-3 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#1D5BD8]"
+                className="py-1.5 px-3 rounded-xl border border-[#E3E9F2] bg-white text-xs font-bold text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-[#2457C5]"
               >
                 {documentTypeOptions.map((opt) => (
                   <option key={opt} value={opt}>
@@ -323,19 +322,19 @@ function CaseDocumentsContent() {
           {/* Optional Meta Tags */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Registration / Document No. <span className="text-slate-400 font-normal">(Optional)</span>
+              <label className="block font-semibold text-[#172B4D] mb-1">
+                Registration / Document No. <span className="text-[#66758A] font-normal">(Optional)</span>
               </label>
               <input
                 type="text"
                 placeholder="e.g. BNG-BK1-4192/2016"
                 value={registrationNumber}
                 onChange={(e) => setRegistrationNumber(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-[#1D5BD8]"
+                className="w-full px-3 py-2 rounded-xl border border-[#E3E9F2] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
               />
             </div>
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block font-semibold text-[#172B4D] mb-1">
                 Sub-Registrar Jurisdiction
               </label>
               <input
@@ -343,18 +342,18 @@ function CaseDocumentsContent() {
                 placeholder="e.g. SRO Bommanahalli"
                 value={subRegistrarOffice}
                 onChange={(e) => setSubRegistrarOffice(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#1D5BD8]"
+                className="w-full px-3 py-2 rounded-xl border border-[#E3E9F2] text-xs focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
               />
             </div>
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block font-semibold text-[#172B4D] mb-1">
                 Execution / Registration Date
               </label>
               <input
                 type="date"
                 value={docDate}
                 onChange={(e) => setDocDate(e.target.value)}
-                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-1 focus:ring-[#1D5BD8]"
+                className="w-full px-3 py-2 rounded-xl border border-[#E3E9F2] text-xs focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
               />
             </div>
           </div>
@@ -365,10 +364,10 @@ function CaseDocumentsContent() {
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all ${
+            className={`border-2 border-dashed rounded-2xl p-8 sm:p-10 text-center transition-all ${
               dragActive
-                ? "border-[#1D5BD8] bg-blue-50/70 scale-[0.99]"
-                : "border-slate-300 hover:border-[#1D5BD8] hover:bg-slate-50/50"
+                ? "border-[#2457C5] bg-[#EEF4FF] scale-[0.99]"
+                : "border-[#E3E9F2] hover:border-[#2457C5] hover:bg-[#F7F9FC]"
             }`}
           >
             <input
@@ -381,15 +380,15 @@ function CaseDocumentsContent() {
             />
 
             <div className="max-w-md mx-auto space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 text-[#1D5BD8] flex items-center justify-center mx-auto shadow-inner">
+              <div className="w-14 h-14 rounded-2xl bg-[#EEF4FF] text-[#2457C5] flex items-center justify-center mx-auto shadow-inner">
                 <IconUploadCloud className="w-7 h-7" />
               </div>
 
               <div className="space-y-1">
-                <h3 className="text-base font-extrabold text-[#10233F]">
+                <h3 className="text-base font-extrabold text-[#16325C]">
                   Drag and drop deed PDF files here
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[#66758A]">
                   Multiple PDFs supported. Page counts and text coordinates are automatically parsed.
                 </p>
               </div>
@@ -399,22 +398,22 @@ function CaseDocumentsContent() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#10233F] hover:bg-[#1a3860] text-white text-xs font-bold shadow-xs transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#16325C] hover:bg-[#112442] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                 >
-                  <IconFileText className="w-4 h-4 text-[#1D5BD8]" />
+                  <IconFileText className="w-4 h-4 text-[#2457C5]" />
                   <span>Browse Files on Computer</span>
                 </button>
               </div>
 
               {uploading && (
                 <div className="pt-2 max-w-xs mx-auto space-y-1.5">
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-2 w-full bg-[#E3E9F2] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#1D5BD8] rounded-full transition-all duration-300"
+                      className="h-full bg-[#2457C5] rounded-full transition-all duration-300"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
-                  <span className="text-[11px] font-mono text-[#1D5BD8] font-bold">
+                  <span className="text-[11px] font-mono text-[#2457C5] font-bold">
                     Extracting deed structure... {uploadProgress}%
                   </span>
                 </div>
@@ -424,110 +423,161 @@ function CaseDocumentsContent() {
         </div>
 
         {/* =========================================================================
-            4. DOSSIER TABLE (Clearly Distinguishing Uploaded, Extracted, Analyzed)
+            4. DOSSIER TABLE & MOBILE CARDS
            ========================================================================= */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-          <div className="p-4.5 border-b border-slate-200 bg-slate-50/80 flex items-center justify-between">
+        <div className="bg-white rounded-2xl border border-[#E3E9F2] shadow-xs overflow-hidden">
+          <div className="p-4.5 border-b border-[#E3E9F2] bg-[#F7F9FC] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
-              <h2 className="text-sm font-extrabold text-[#10233F]">Ingested Case Dossier</h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-[#1D5BD8] text-xs font-bold">
+              <h2 className="text-sm font-extrabold text-[#16325C]">Ingested Case Dossier</h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-[#EEF4FF] text-[#2457C5] text-xs font-bold border border-[#2457C5]/20">
                 {documents.length} Deeds Ready
               </span>
             </div>
-            <span className="text-xs text-slate-400 font-medium">
+            <span className="text-xs text-[#66758A] font-medium">
               Chronologically organized for 30-year devolution
             </span>
           </div>
 
           {documents.length === 0 ? (
             <div className="p-12 text-center space-y-3">
-              <IconFileText className="w-8 h-8 text-slate-300 mx-auto" />
-              <h3 className="text-sm font-bold text-slate-700">No Deeds Uploaded Yet</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-[#EEF4FF] text-[#2457C5] flex items-center justify-center mx-auto">
+                <IconFileText className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-[#172B4D]">No Deeds Uploaded Yet</h3>
+              <p className="text-xs text-[#66758A] max-w-sm mx-auto">
                 Drag and drop title deeds (PDF) above or browse from your computer to begin document parsing.
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                  <tr>
-                    <th className="py-3 px-4">Deed / Instrument</th>
-                    <th className="py-3 px-4">Classification</th>
-                    <th className="py-3 px-4">Registration Reference</th>
-                    <th className="py-3 px-4">Extraction &amp; Pages</th>
-                    <th className="py-3 px-4">Lifecycle Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {documents.map((doc, idx) => (
-                    <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#1D5BD8] flex items-center justify-center font-bold text-xs flex-shrink-0">
-                            {idx + 1}
-                          </div>
-                          <div>
-                            <span className="font-bold text-[#10233F] block truncate max-w-xs">
-                              {doc.fileName}
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                              Executed: {doc.docDate}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <span className="inline-block px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-semibold">
-                          {doc.docType}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 font-mono text-[11px] text-slate-600">
-                        {doc.registrationNumber || "Unregistered / Draft"}
-                      </td>
-
-                      <td className="py-3.5 px-4 font-mono text-[11px] text-slate-600">
-                        {doc.pageCount} pgs ({formatFileSize(doc.fileSizeBytes)})
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        {/* 3-Tier Status Indicator */}
-                        <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-[#16805D] border border-emerald-200">
-                            <IconCheckCircle className="w-3 h-3" />
-                            <span>EXTRACTED</span>
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            Ready
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => setPreviewDoc(doc)}
-                            className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-[#1D5BD8] hover:border-[#1D5BD8] transition-colors"
-                            title="Preview Deed"
-                          >
-                            <IconEye className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => deleteDocument(doc.id)}
-                            className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-rose-600 hover:border-rose-300 transition-colors"
-                            title="Remove Document"
-                          >
-                            <IconX className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+            <div>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#F7F9FC] text-[#66758A] font-semibold border-b border-[#E3E9F2]">
+                    <tr>
+                      <th className="py-3 px-4">Deed / Instrument</th>
+                      <th className="py-3 px-4">Classification</th>
+                      <th className="py-3 px-4">Registration Reference</th>
+                      <th className="py-3 px-4">Extraction &amp; Pages</th>
+                      <th className="py-3 px-4">Lifecycle Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-[#E3E9F2]">
+                    {documents.map((doc, idx) => (
+                      <tr key={doc.id} className="hover:bg-[#F7F9FC] transition-colors">
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-[#EEF4FF] text-[#2457C5] flex items-center justify-center font-bold text-xs flex-shrink-0">
+                              {idx + 1}
+                            </div>
+                            <div>
+                              <span className="font-bold text-[#16325C] block truncate max-w-xs">
+                                {doc.fileName}
+                              </span>
+                              <span className="text-[10px] text-[#66758A]">
+                                Executed: {doc.docDate}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <span className="inline-block px-2.5 py-0.5 rounded-lg bg-[#F7F9FC] border border-[#E3E9F2] text-[#172B4D] text-[11px] font-semibold">
+                            {doc.docType}
+                          </span>
+                        </td>
+
+                        <td className="py-3.5 px-4 font-mono text-[11px] text-[#66758A]">
+                          {doc.registrationNumber || "Unregistered / Draft"}
+                        </td>
+
+                        <td className="py-3.5 px-4 font-mono text-[11px] text-[#66758A]">
+                          {doc.pageCount} pgs ({formatFileSize(doc.fileSizeBytes)})
+                        </td>
+
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#16805D]/10 text-[#16805D] border border-[#16805D]/20">
+                              <IconCheckCircle className="w-3 h-3" />
+                              <span>EXTRACTED</span>
+                            </span>
+                            <span className="text-[10px] text-[#66758A] font-mono">
+                              Ready
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => setPreviewDoc(doc)}
+                              className="p-1.5 rounded-lg border border-[#E3E9F2] bg-white text-[#66758A] hover:text-[#2457C5] hover:border-[#2457C5] transition-colors"
+                              title="Preview Deed"
+                            >
+                              <IconEye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => deleteDocument(doc.id)}
+                              className="p-1.5 rounded-lg border border-[#E3E9F2] bg-white text-[#66758A] hover:text-[#C03945] hover:border-[#C03945]/30 transition-colors"
+                              title="Remove Document"
+                            >
+                              <IconX className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-[#E3E9F2]">
+                {documents.map((doc, idx) => (
+                  <div key={doc.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-[#EEF4FF] text-[#2457C5] flex items-center justify-center font-bold text-xs flex-shrink-0">
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <span className="font-bold text-xs text-[#16325C] block">
+                            {doc.fileName}
+                          </span>
+                          <span className="text-[10px] text-[#66758A]">
+                            {doc.docType} &bull; {doc.docDate}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setPreviewDoc(doc)}
+                          className="p-1.5 rounded-lg border border-[#E3E9F2] bg-white text-[#66758A] hover:text-[#2457C5]"
+                          title="Preview"
+                        >
+                          <IconEye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => deleteDocument(doc.id)}
+                          className="p-1.5 rounded-lg border border-[#E3E9F2] bg-white text-[#66758A] hover:text-[#C03945]"
+                          title="Remove"
+                        >
+                          <IconX className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between text-[11px] text-[#66758A] bg-[#F7F9FC] p-2 rounded-xl">
+                      <span className="font-mono">{doc.registrationNumber || "Unregistered"}</span>
+                      <span>{doc.pageCount} pgs ({formatFileSize(doc.fileSizeBytes)})</span>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#16805D]/10 text-[#16805D]">
+                        <IconCheckCircle className="w-3 h-3" /> EXTRACTED
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -536,21 +586,21 @@ function CaseDocumentsContent() {
             5. OBVIOUS NEXT-STEP ACTION CARD
            ========================================================================= */}
         {documents.length > 0 && (
-          <div className="p-5 rounded-2xl bg-gradient-to-r from-[#10233F] to-[#1c3f6e] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-[#16325C] to-[#1E437C] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
             <div className="space-y-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300">
-                Step 3 Complete ? Dossier Indexed
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-200">
+                Step 3 Complete &bull; Dossier Indexed
               </span>
               <h3 className="font-extrabold text-sm sm:text-base">
                 Ready for AI Title Scrutiny &amp; Boundary Cross-Check
               </h3>
-              <p className="text-xs text-blue-200/80">
+              <p className="text-xs text-blue-100/80">
                 {documents.length} deed documents extracted. Run the scrutiny engine to verify 30-year chain continuity and schedule boundaries.
               </p>
             </div>
             <Link
               href={`/cases/${caseId}/scrutiny`}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1D5BD8] hover:bg-[#1547B2] text-white text-xs font-bold shadow-md shadow-blue-900/30 transition-all whitespace-nowrap self-start sm:self-auto transform hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#2457C5] hover:bg-[#1B449E] text-white text-xs font-bold shadow-md shadow-[#16325C]/30 transition-all whitespace-nowrap self-start sm:self-auto transform hover:-translate-y-0.5"
             >
               <span>Launch Step 4: AI Scrutiny</span>
               <IconArrowRight className="w-4 h-4" />
@@ -560,59 +610,59 @@ function CaseDocumentsContent() {
 
         {/* Preview Modal */}
         {previewDoc && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
-              <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-[#E3E9F2]">
+              <div className="p-4 border-b border-[#E3E9F2] flex items-center justify-between bg-[#F7F9FC]">
                 <div>
-                  <h3 className="font-bold text-sm text-[#10233F]">{previewDoc.fileName}</h3>
-                  <p className="text-xs text-slate-500">
+                  <h3 className="font-bold text-sm text-[#16325C]">{previewDoc.fileName}</h3>
+                  <p className="text-xs text-[#66758A]">
                     {previewDoc.docType} &bull; Registered: {previewDoc.registrationNumber}
                   </p>
                 </div>
                 <button
                   onClick={() => setPreviewDoc(null)}
-                  className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500"
+                  className="p-1.5 rounded-lg hover:bg-[#E3E9F2] text-[#66758A] transition-colors"
                 >
                   <IconX className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50/50">
+              <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-[#F7F9FC]/50">
                 {previewDoc.fileUrl ? (
                   <iframe
                     src={previewDoc.fileUrl + (session?.access_token && !previewDoc.fileUrl.includes("token=") ? (previewDoc.fileUrl.includes("?") ? "&" : "?") + "token=" + session.access_token : "")}
-                    className="w-full h-96 rounded-xl border border-slate-300 bg-white"
+                    className="w-full h-96 rounded-xl border border-[#E3E9F2] bg-white shadow-xs"
                     title={previewDoc.fileName}
                   />
                 ) : (
                   <div className="space-y-3">
-                    <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-2">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                    <div className="p-4 rounded-xl bg-white border border-[#E3E9F2] shadow-xs space-y-2">
+                      <span className="text-[10px] uppercase font-bold text-[#66758A] tracking-wider">
                         Extracted Index Snippet
                       </span>
-                      <p className="text-xs text-slate-700 leading-relaxed font-serif">
+                      <p className="text-xs text-[#172B4D] leading-relaxed font-serif">
                         {previewDoc.sampleSnippets?.[0]?.text || "Extracted deed metadata ready for clause comparison."}
                       </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div className="p-3 rounded-lg bg-white border border-slate-200">
-                        <span className="text-[10px] text-slate-400 block font-semibold">Sub-Registrar Office</span>
-                        <span className="font-medium text-slate-800">{previewDoc.subRegistrarOffice || "N/A"}</span>
+                      <div className="p-3 rounded-lg bg-white border border-[#E3E9F2]">
+                        <span className="text-[10px] text-[#66758A] block font-semibold">Sub-Registrar Office</span>
+                        <span className="font-medium text-[#172B4D]">{previewDoc.subRegistrarOffice || "N/A"}</span>
                       </div>
-                      <div className="p-3 rounded-lg bg-white border border-slate-200">
-                        <span className="text-[10px] text-slate-400 block font-semibold">Execution Date</span>
-                        <span className="font-medium text-slate-800">{previewDoc.docDate}</span>
+                      <div className="p-3 rounded-lg bg-white border border-[#E3E9F2]">
+                        <span className="text-[10px] text-[#66758A] block font-semibold">Execution Date</span>
+                        <span className="font-medium text-[#172B4D]">{previewDoc.docDate}</span>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="p-3.5 border-t border-slate-200 bg-white flex justify-end">
+              <div className="p-3.5 border-t border-[#E3E9F2] bg-white flex justify-end">
                 <button
                   onClick={() => setPreviewDoc(null)}
-                  className="px-4 py-1.5 rounded-lg bg-[#10233F] text-white text-xs font-semibold"
+                  className="px-4 py-2 rounded-xl bg-[#16325C] hover:bg-[#112442] text-white text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Close Preview
                 </button>
@@ -627,7 +677,7 @@ function CaseDocumentsContent() {
 
 export default function CaseDocumentsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-slate-500">Loading document dossier...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-[#66758A]">Loading document dossier...</div>}>
       <CaseDocumentsContent />
     </Suspense>
   );

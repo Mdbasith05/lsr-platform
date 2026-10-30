@@ -68,11 +68,12 @@ function CaseReportContent() {
   if (!currentCase || !report) {
     return (
       <AuthenticatedShell>
-        <div className="p-8 text-center bg-white rounded-xl border border-slate-200">
-          <h2 className="text-lg font-bold text-slate-800">Case or Report Draft Not Found</h2>
+        <div className="p-12 text-center bg-white rounded-2xl border border-[#E3E9F2]">
+          <h2 className="text-lg font-bold text-[#172B4D]">Case or Report Draft Not Found</h2>
+          <p className="text-xs text-[#66758A] mt-1">Reference {caseId} does not exist in local workspace.</p>
           <Link
             href="/cases"
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#10233F] text-white text-xs font-semibold rounded-lg"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#16325C] text-white text-xs font-bold rounded-xl hover:bg-[#112442] transition-colors"
           >
             <IconArrowLeft className="w-4 h-4" />
             <span>Return to All Matters</span>
@@ -104,13 +105,13 @@ function CaseReportContent() {
   const getOutcomeBadgeStyle = (outcome: LegalOpinionOutcome) => {
     switch (outcome) {
       case "Clear and Marketable Title":
-        return "bg-emerald-50 text-[#16805D] border-emerald-300";
+        return "bg-[#16805D]/10 text-[#16805D] border-[#16805D]/30";
       case "Clear with Pre-Disbursement Conditions":
-        return "bg-blue-50 text-[#356AE6] border-blue-300";
+        return "bg-[#EEF4FF] text-[#2457C5] border-[#2457C5]/30";
       case "Defective Title - Unfit for Mortgage":
-        return "bg-rose-50 text-rose-700 border-rose-300";
+        return "bg-[#C03945]/10 text-[#C03945] border-[#C03945]/30";
       case "Awaiting Critical Query Resolution":
-        return "bg-amber-50 text-amber-700 border-amber-300";
+        return "bg-[#B7791F]/10 text-[#B7791F] border-[#B7791F]/30";
     }
   };
 
@@ -122,21 +123,22 @@ function CaseReportContent() {
           <div className="flex items-center gap-3">
             <Link
               href={`/cases/${caseId}`}
-              className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors shadow-xs"
+              className="p-2.5 rounded-xl border border-[#E3E9F2] bg-white text-[#66758A] hover:text-[#172B4D] hover:bg-[#F7F9FC] transition-colors shadow-xs"
+              title="Return to Case Overview"
             >
               <IconArrowLeft className="w-4 h-4" />
             </Link>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold text-[#356AE6] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs font-bold text-[#2457C5] bg-[#EEF4FF] px-2 py-0.5 rounded border border-[#2457C5]/20">
                   {currentCase.id}
                 </span>
-                <span className="text-slate-300">|</span>
-                <span className="text-xs font-semibold text-slate-700">{currentCase.borrowerName}</span>
-                <span className="text-slate-300">|</span>
-                <span className="text-xs text-slate-500">{currentCase.bankName}</span>
+                <span className="text-[#E3E9F2]">|</span>
+                <span className="text-xs font-bold text-[#172B4D]">{currentCase.borrowerName}</span>
+                <span className="text-[#E3E9F2]">|</span>
+                <span className="text-xs text-[#66758A] font-medium">{currentCase.bankName}</span>
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-[#10233F] mt-1">
+              <h1 className="text-2xl font-extrabold tracking-tight text-[#16325C] mt-1">
                 Draft Legal Scrutiny Report (LSR)
               </h1>
             </div>
@@ -145,17 +147,17 @@ function CaseReportContent() {
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white border border-[#E3E9F2] text-[#172B4D] hover:bg-[#F7F9FC] text-xs font-semibold transition-colors shadow-xs cursor-pointer"
             >
-              <IconEdit className="w-4 h-4 text-slate-500" />
+              <IconEdit className="w-4 h-4 text-[#66758A]" />
               <span>{isEditing ? "Close Editor" : "Edit Report Narrative"}</span>
             </button>
 
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-300 text-slate-800 hover:bg-slate-50 text-xs font-bold transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white border border-[#E3E9F2] text-[#172B4D] hover:bg-[#F7F9FC] text-xs font-bold transition-colors shadow-xs cursor-pointer"
             >
-              <IconPrinter className="w-4 h-4 text-[#356AE6]" />
+              <IconPrinter className="w-4 h-4 text-[#2457C5]" />
               <span>Print Preview</span>
             </button>
 
@@ -163,7 +165,7 @@ function CaseReportContent() {
               href={downloadUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-300 text-slate-800 hover:bg-slate-50 text-xs font-bold transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white border border-[#E3E9F2] text-[#172B4D] hover:bg-[#F7F9FC] text-xs font-bold transition-colors shadow-xs cursor-pointer"
               title="Download Server-Rendered Official Bank Scrutiny PDF"
             >
               <IconDownload className="w-4 h-4 text-[#16805D]" />
@@ -173,14 +175,14 @@ function CaseReportContent() {
             {!report.isSigned ? (
               <button
                 onClick={handleSignOff}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#16805D] hover:bg-[#11664a] text-white text-xs font-bold shadow-md shadow-emerald-500/20 transition-all"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#16805D] hover:bg-[#126b4d] text-white text-xs font-bold shadow-md shadow-[#16805D]/20 transition-all cursor-pointer"
               >
                 <IconCheckCircle className="w-4 h-4" />
                 <span>Advocate Final Sign-Off</span>
               </button>
             ) : (
               <div className="flex items-center gap-2">
-                <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-[#16805D] text-xs font-bold shadow-xs">
+                <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#16805D]/10 border border-[#16805D]/30 text-[#16805D] text-xs font-bold shadow-xs">
                   <IconCheck className="w-4 h-4" />
                   <span>Signed &amp; Approved by Advocate</span>
                 </div>
@@ -190,7 +192,7 @@ function CaseReportContent() {
                       amendReport(caseId);
                     }
                   }}
-                  className="px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-colors shadow-xs"
+                  className="px-3 py-2 rounded-xl border border-[#E3E9F2] bg-white hover:bg-[#F7F9FC] text-[#66758A] text-xs font-semibold transition-colors shadow-xs cursor-pointer"
                   title="Unlock to revise opinion"
                 >
                   Amend Report
@@ -213,7 +215,7 @@ function CaseReportContent() {
         </div>
 
         {/* Mandatory Legal Draft Disclaimer Banner - Hidden in Print */}
-        <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-4 text-xs text-amber-950 flex items-start gap-3 no-print shadow-xs">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-950 flex items-start gap-3 no-print shadow-xs">
           <IconShield className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <strong className="font-bold text-amber-950 uppercase tracking-wide">
@@ -227,14 +229,14 @@ function CaseReportContent() {
 
         {/* Interactive Editor Drawer when isEditing is true */}
         {isEditing && (
-          <div className="bg-white p-6 rounded-2xl border-2 border-[#356AE6] shadow-xl space-y-4 text-xs no-print">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-sm text-[#10233F]">
+          <div className="bg-white p-6 rounded-2xl border-2 border-[#2457C5] shadow-xl space-y-4 text-xs no-print">
+            <div className="flex items-center justify-between border-b border-[#E3E9F2] pb-3">
+              <h3 className="font-bold text-sm text-[#16325C]">
                 Edit Legal Scrutiny Report Narrative
               </h3>
               <button
                 onClick={handleSaveEdits}
-                className="px-4 py-1.5 rounded-lg bg-[#356AE6] text-white font-bold flex items-center gap-1 text-xs shadow-xs"
+                className="px-4 py-2 rounded-xl bg-[#2457C5] hover:bg-[#1B449E] text-white font-bold flex items-center gap-1.5 text-xs shadow-xs cursor-pointer transition-colors"
               >
                 <IconCheck className="w-3.5 h-3.5" />
                 <span>Apply &amp; Save Changes</span>
@@ -243,13 +245,13 @@ function CaseReportContent() {
 
             <div className="space-y-3">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
+                <label className="block font-semibold text-[#172B4D] mb-1">
                   Final Legal Opinion Classification
                 </label>
                 <select
                   value={opinionOutcome}
                   onChange={(e) => setOpinionOutcome(e.target.value as LegalOpinionOutcome)}
-                  className="w-full p-2.5 rounded-lg border border-slate-300 text-xs font-bold"
+                  className="w-full p-2.5 rounded-xl border border-[#E3E9F2] text-xs font-bold bg-white text-[#172B4D] focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
                 >
                   <option value="Clear and Marketable Title">Clear and Marketable Title</option>
                   <option value="Clear with Pre-Disbursement Conditions">Clear with Pre-Disbursement Conditions</option>
@@ -259,38 +261,38 @@ function CaseReportContent() {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
+                <label className="block font-semibold text-[#172B4D] mb-1">
                   Devolution of Title Chronological Chain Narrative
                 </label>
                 <textarea
                   rows={5}
                   value={chainNarrative}
                   onChange={(e) => setChainNarrative(e.target.value)}
-                  className="w-full p-3 rounded-lg border border-slate-300 font-mono text-xs leading-relaxed"
+                  className="w-full p-3 rounded-xl border border-[#E3E9F2] font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
+                <label className="block font-semibold text-[#172B4D] mb-1">
                   Encumbrance Certificate &amp; Revenue Search Verification Notes
                 </label>
                 <textarea
                   rows={3}
                   value={encumbranceNotes}
                   onChange={(e) => setEncumbranceNotes(e.target.value)}
-                  className="w-full p-3 rounded-lg border border-slate-300 font-mono text-xs leading-relaxed"
+                  className="w-full p-3 rounded-xl border border-[#E3E9F2] font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">
+                <label className="block font-semibold text-[#172B4D] mb-1">
                   General Advocate Observations &amp; Advice
                 </label>
                 <textarea
                   rows={3}
                   value={generalObservations}
                   onChange={(e) => setGeneralObservations(e.target.value)}
-                  className="w-full p-3 rounded-lg border border-slate-300 font-mono text-xs leading-relaxed"
+                  className="w-full p-3 rounded-xl border border-[#E3E9F2] font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
                 />
               </div>
             </div>
@@ -300,44 +302,44 @@ function CaseReportContent() {
         {/* =========================================================================
             FORMAL REPORT PAPER SHEET (Court & Bank Standard Print Layout)
            ========================================================================= */}
-        <div className="bg-white rounded-2xl border border-slate-300 shadow-md p-8 md:p-12 space-y-8 text-slate-900 report-sheet">
+        <div className="bg-white rounded-2xl border border-[#E3E9F2] shadow-sm p-6 sm:p-10 md:p-14 space-y-8 text-[#172B4D] report-sheet">
           {/* Chamber Letterhead Header */}
-          <div className="border-b-2 border-slate-800 pb-5 text-center space-y-1">
-            <div className="w-10 h-10 rounded-xl bg-[#10233F] text-white flex items-center justify-center mx-auto mb-2">
-              <IconScale className="w-6 h-6 text-[#356AE6]" />
+          <div className="border-b-2 border-[#16325C] pb-6 text-center space-y-1">
+            <div className="w-12 h-12 rounded-2xl bg-[#16325C] text-white flex items-center justify-center mx-auto mb-3 shadow-sm">
+              <IconScale className="w-6 h-6 text-blue-200" />
             </div>
-            <h2 className="text-xl font-serif font-extrabold tracking-wide text-[#10233F] uppercase">
+            <h2 className="text-xl sm:text-2xl font-serif font-extrabold tracking-wide text-[#16325C] uppercase">
               {userProfile.chamberName}
             </h2>
-            <p className="text-xs text-slate-600 font-medium font-sans">
-              Advocates &amp; Legal Consultants ? High Court of Karnataka Empaneled
+            <p className="text-xs text-[#66758A] font-medium font-sans">
+              Advocates &amp; Legal Consultants &bull; High Court of Karnataka Empaneled
             </p>
-            <p className="text-[11px] text-slate-500 font-sans">
-              Chamber: {userProfile.address} | Tel: {userProfile.phone}
+            <p className="text-[11px] text-[#66758A] font-sans">
+              Chamber: {userProfile.address} &bull; Tel: {userProfile.phone}
             </p>
           </div>
 
           {/* Reference Meta Box */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs border-b border-slate-200 pb-4 gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs border-b border-[#E3E9F2] pb-4 gap-2">
             <div>
-              <span className="font-semibold text-slate-500">Report Reference:</span>{" "}
-              <strong className="font-mono text-slate-900 font-bold">{report.reportRefNumber}</strong>
+              <span className="font-semibold text-[#66758A]">Report Reference:</span>{" "}
+              <strong className="font-mono text-[#16325C] font-bold">{report.reportRefNumber}</strong>
             </div>
             <div>
-              <span className="font-semibold text-slate-500">Date of Search:</span>{" "}
-              <strong className="text-slate-900 font-bold">{report.reportDate}</strong>
+              <span className="font-semibold text-[#66758A]">Date of Search:</span>{" "}
+              <strong className="text-[#172B4D] font-bold">{report.reportDate}</strong>
             </div>
           </div>
 
           {/* Subject Addressed to Bank */}
           <div className="text-xs space-y-1">
-            <p className="font-semibold text-slate-600">To,</p>
-            <p className="font-bold text-slate-900">The Branch Manager / Chief Manager</p>
-            <p className="text-slate-800">{currentCase.bankName}</p>
-            <p className="text-slate-600">{currentCase.branch}</p>
-            <p className="pt-2 text-xs font-semibold text-[#10233F]">
+            <p className="font-semibold text-[#66758A]">To,</p>
+            <p className="font-bold text-[#16325C]">The Branch Manager / Chief Manager</p>
+            <p className="text-[#172B4D] font-medium">{currentCase.bankName}</p>
+            <p className="text-[#66758A]">{currentCase.branch}</p>
+            <p className="pt-2 text-xs font-semibold text-[#16325C] leading-relaxed">
               <strong>SUBJECT:</strong> Title Search and Legal Scrutiny Report (LSR) for proposed credit facility of{" "}
-              <strong>{currentCase.loanAmount}</strong> favoring <strong>{currentCase.borrowerName}</strong>
+              <strong className="text-[#2457C5]">{currentCase.loanAmount}</strong> favoring <strong>{currentCase.borrowerName}</strong>
               {currentCase.coBorrowerName ? ` & ${currentCase.coBorrowerName}` : ""}.
             </p>
           </div>
@@ -354,38 +356,38 @@ function CaseReportContent() {
 
           {/* Section 1: Property Description & Schedule */}
           <div className="space-y-3 text-xs">
-            <h4 className="font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1 flex items-center gap-1.5">
+            <h4 className="font-bold uppercase tracking-wider text-[#16325C] border-b border-[#E3E9F2] pb-1.5 flex items-center gap-1.5">
               <span>1. Description of Schedule Property</span>
             </h4>
-            <p className="text-slate-700 leading-relaxed font-serif">
+            <p className="text-[#172B4D] leading-relaxed font-serif">
               {report.propertyDescription}
             </p>
 
             {/* Boundaries Table */}
-            <div className="overflow-hidden rounded-lg border border-slate-200 text-xs mt-2">
+            <div className="overflow-hidden rounded-xl border border-[#E3E9F2] text-xs mt-2">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                <thead className="bg-[#F7F9FC] text-[#16325C] font-bold border-b border-[#E3E9F2]">
                   <tr>
-                    <th className="py-2 px-3">Direction</th>
-                    <th className="py-2 px-3">Boundary as per Title Deed &amp; Ground Inspection</th>
+                    <th className="py-2.5 px-3">Direction</th>
+                    <th className="py-2.5 px-3">Boundary as per Title Deed &amp; Ground Inspection</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-serif">
+                <tbody className="divide-y divide-[#E3E9F2] font-serif">
                   <tr>
-                    <td className="py-2 px-3 font-bold font-sans text-slate-700">North by:</td>
-                    <td className="py-2 px-3">{currentCase.boundaries.north}</td>
+                    <td className="py-2.5 px-3 font-bold font-sans text-[#172B4D]">North by:</td>
+                    <td className="py-2.5 px-3">{currentCase.boundaries.north}</td>
                   </tr>
                   <tr>
-                    <td className="py-2 px-3 font-bold font-sans text-slate-700">South by:</td>
-                    <td className="py-2 px-3">{currentCase.boundaries.south}</td>
+                    <td className="py-2.5 px-3 font-bold font-sans text-[#172B4D]">South by:</td>
+                    <td className="py-2.5 px-3">{currentCase.boundaries.south}</td>
                   </tr>
                   <tr>
-                    <td className="py-2 px-3 font-bold font-sans text-slate-700">East by:</td>
-                    <td className="py-2 px-3">{currentCase.boundaries.east}</td>
+                    <td className="py-2.5 px-3 font-bold font-sans text-[#172B4D]">East by:</td>
+                    <td className="py-2.5 px-3">{currentCase.boundaries.east}</td>
                   </tr>
                   <tr>
-                    <td className="py-2 px-3 font-bold font-sans text-slate-700">West by:</td>
-                    <td className="py-2 px-3">{currentCase.boundaries.west}</td>
+                    <td className="py-2.5 px-3 font-bold font-sans text-[#172B4D]">West by:</td>
+                    <td className="py-2.5 px-3">{currentCase.boundaries.west}</td>
                   </tr>
                 </tbody>
               </table>
@@ -393,19 +395,19 @@ function CaseReportContent() {
 
             {/* Scrutinized Documents List */}
             {documents.length > 0 && (
-              <div className="overflow-hidden rounded-lg border border-slate-200 text-xs mt-3">
+              <div className="overflow-hidden rounded-xl border border-[#E3E9F2] text-xs mt-3">
                 <table className="w-full text-left">
-                  <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                  <thead className="bg-[#F7F9FC] text-[#16325C] font-bold border-b border-[#E3E9F2]">
                     <tr>
-                      <th className="py-2 px-3">No.</th>
-                      <th className="py-2 px-3">Document Ingested &amp; Scrutinized</th>
-                      <th className="py-2 px-3">Registration Ref &amp; Date</th>
+                      <th className="py-2.5 px-3">No.</th>
+                      <th className="py-2.5 px-3">Document Ingested &amp; Scrutinized</th>
+                      <th className="py-2.5 px-3">Registration Ref &amp; Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-serif text-[11px]">
+                  <tbody className="divide-y divide-[#E3E9F2] font-serif text-[11px]">
                     {documents.map((doc, idx) => (
                       <tr key={doc.id}>
-                        <td className="py-2 px-3 font-sans font-bold text-slate-600">{idx + 1}</td>
+                        <td className="py-2 px-3 font-sans font-bold text-[#66758A]">{idx + 1}</td>
                         <td className="py-2 px-3">{doc.docType} ({doc.fileName})</td>
                         <td className="py-2 px-3 font-mono">{doc.registrationNumber || "Unregistered"} | {doc.docDate}</td>
                       </tr>
@@ -418,40 +420,40 @@ function CaseReportContent() {
 
           {/* Section 2: Chain of Title Devolution */}
           <div className="space-y-3 text-xs">
-            <h4 className="font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1">
+            <h4 className="font-bold uppercase tracking-wider text-[#16325C] border-b border-[#E3E9F2] pb-1.5">
               2. Chronological Flow of Title (Devolution of Ownership)
             </h4>
-            <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-200 text-slate-800 whitespace-pre-wrap font-serif leading-relaxed text-justify">
+            <div className="p-4 rounded-xl bg-[#F7F9FC] border border-[#E3E9F2] text-[#172B4D] whitespace-pre-wrap font-serif leading-relaxed text-justify">
               {report.chainOfTitleNarrative}
             </div>
           </div>
 
           {/* Section 3: Encumbrance Certificate Verification */}
           <div className="space-y-3 text-xs">
-            <h4 className="font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1">
+            <h4 className="font-bold uppercase tracking-wider text-[#16325C] border-b border-[#E3E9F2] pb-1.5">
               3. Encumbrance &amp; Revenue Search Verification
             </h4>
-            <p className="text-slate-700 font-serif leading-relaxed text-justify">
+            <p className="text-[#172B4D] font-serif leading-relaxed text-justify">
               {report.encumbranceVerificationNotes}
             </p>
-            <p className="text-slate-700 font-serif leading-relaxed">
+            <p className="text-[#172B4D] font-serif leading-relaxed">
               <strong>Revenue Records:</strong> {report.revenueRecordsNotes}
             </p>
           </div>
 
           {/* Section 4: Pre-Disbursement Requisitions / Conditions */}
           <div className="space-y-3 text-xs">
-            <h4 className="font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1 text-rose-900">
+            <h4 className="font-bold uppercase tracking-wider text-[#C03945] border-b border-[#E3E9F2] pb-1.5">
               4. Pre-Disbursement Conditions &amp; Original Deeds Deposit
             </h4>
-            <p className="text-slate-600 text-[11px]">
+            <p className="text-[#66758A] text-[11px]">
               The lending institution is advised to ensure compliance with the following mandatory conditions prior to loan release:
             </p>
             <ul className="space-y-2 list-none font-serif">
               {report.preDisbursementConditions.map((cond, index) => (
-                <li key={index} className="flex items-start gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                  <span className="font-sans font-bold text-slate-500">{index + 1}.</span>
-                  <span className="text-slate-800 leading-relaxed">{cond}</span>
+                <li key={index} className="flex items-start gap-2 bg-[#F7F9FC] p-3 rounded-xl border border-[#E3E9F2]">
+                  <span className="font-sans font-bold text-[#2457C5]">{index + 1}.</span>
+                  <span className="text-[#172B4D] leading-relaxed">{cond}</span>
                 </li>
               ))}
             </ul>
@@ -459,10 +461,10 @@ function CaseReportContent() {
 
           {/* Section 5: Post-Disbursement Conditions */}
           <div className="space-y-3 text-xs">
-            <h4 className="font-bold uppercase tracking-wider text-slate-800 border-b border-slate-200 pb-1">
+            <h4 className="font-bold uppercase tracking-wider text-[#16325C] border-b border-[#E3E9F2] pb-1.5">
               5. Post-Disbursement Requirements
             </h4>
-            <ul className="space-y-1.5 list-disc pl-5 font-serif text-slate-700">
+            <ul className="space-y-1.5 list-disc pl-5 font-serif text-[#172B4D]">
               {report.postDisbursementConditions.map((cond, index) => (
                 <li key={index} className="leading-relaxed">
                   {cond}
@@ -472,46 +474,46 @@ function CaseReportContent() {
           </div>
 
           {/* Section 6: Certification & Signature Block */}
-          <div className="pt-6 border-t-2 border-slate-800 space-y-6 text-xs">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-serif text-[11px] leading-relaxed text-justify">
+          <div className="pt-6 border-t-2 border-[#16325C] space-y-6 text-xs">
+            <div className="p-4 rounded-xl bg-[#F7F9FC] border border-[#E3E9F2] text-[#172B4D] font-serif text-[11px] leading-relaxed text-justify">
               <strong>ADVOCATE CERTIFICATION:</strong> I hereby certify that I have personally scrutinized the title documents, link mother deeds, encumbrance certificates, and revenue extracts produced before me. Subject to the fulfillment of stated pre-disbursement conditions, the title of Sri {currentCase.borrowerName} is clear, marketable, and valid for the creation of an equitable mortgage by deposit of title deeds in favor of {currentCase.bankName}.
             </div>
 
             <div className="flex flex-col sm:flex-row items-end justify-between pt-4 gap-4">
-              <div className="text-[11px] text-slate-500 space-y-1">
+              <div className="text-[11px] text-[#66758A] space-y-1">
                 <div>Place: Bengaluru, Karnataka</div>
                 <div>Date: {report.reportDate}</div>
-                <div className="font-mono text-[10px] text-slate-400">
-                  Digitally Compiled via Lawyer Copilot Engine
+                <div className="font-mono text-[10px] text-[#66758A]/80">
+                  Digitally Compiled via LSR Platform
                 </div>
               </div>
 
               <div className="text-right space-y-2">
                 {report.isSigned ? (
-                  <div className="inline-block p-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 text-center shadow-xs">
-                    <div className="font-bold uppercase tracking-wider text-[10px] flex items-center justify-center gap-1">
+                  <div className="inline-block p-4 rounded-2xl border-2 border-[#16805D] bg-[#16805D]/10 text-[#16805D] text-center shadow-xs">
+                    <div className="font-bold uppercase tracking-wider text-[10px] flex items-center justify-center gap-1.5">
                       <IconCheck className="w-3.5 h-3.5" />
                       <span>Digitally Signed &amp; Approved</span>
                     </div>
-                    <div className="font-serif font-bold text-xs mt-1 text-slate-900">
+                    <div className="font-serif font-bold text-xs mt-1 text-[#172B4D]">
                       {report.advocateName}
                     </div>
-                    <div className="font-mono text-[10px] text-slate-600">
+                    <div className="font-mono text-[10px] text-[#66758A]">
                       Enrollment: {report.barEnrollmentNumber}
                     </div>
-                    <div className="text-[9px] text-slate-400 mt-0.5">
+                    <div className="text-[9px] text-[#66758A] mt-0.5">
                       {report.signedAt ? new Date(report.signedAt).toLocaleString("en-IN") : ""}
                     </div>
                   </div>
                 ) : (
-                  <div className="border-2 border-dashed border-slate-300 p-4 rounded-xl text-center space-y-1">
-                    <div className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+                  <div className="border-2 border-dashed border-[#E3E9F2] p-4 rounded-2xl text-center space-y-1 bg-[#F7F9FC]">
+                    <div className="text-[10px] text-[#66758A] uppercase tracking-widest font-bold">
                       Awaiting Advocate Sign-Off
                     </div>
-                    <div className="font-serif font-bold text-xs text-slate-700">
+                    <div className="font-serif font-bold text-xs text-[#172B4D]">
                       {report.advocateName}
                     </div>
-                    <div className="font-mono text-[10px] text-slate-500">
+                    <div className="font-mono text-[10px] text-[#66758A]">
                       {report.barEnrollmentNumber}
                     </div>
                   </div>
@@ -527,7 +529,7 @@ function CaseReportContent() {
 
 export default function CaseReportPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-slate-500">Loading Draft LSR Report...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-[#66758A]">Loading Draft LSR Report...</div>}>
       <CaseReportContent />
     </Suspense>
   );

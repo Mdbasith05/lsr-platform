@@ -17,7 +17,6 @@ import {
   IconEdit,
   IconFileText,
   IconPlus,
-  IconCheckCircle,
   IconScale,
 } from "@/components/icons";
 
@@ -147,7 +146,7 @@ function CaseScrutinyContent() {
     setShowAddModal(false);
   };
 
-  // Determine active document to show on right pane
+  // Determine active document to show on viewer pane
   const activeDocument: CaseDocument | undefined =
     (activeDocOverrideId && documents.find((d) => d.id === activeDocOverrideId)) ||
     documents.find((d) => d.id === selectedFinding?.sourceDocId) ||
@@ -157,11 +156,12 @@ function CaseScrutinyContent() {
   if (!currentCase) {
     return (
       <AuthenticatedShell>
-        <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-          <h2 className="text-lg font-bold text-slate-800">Case Dossier Not Found</h2>
+        <div className="p-12 text-center bg-white rounded-2xl border border-[#E3E9F2]">
+          <h2 className="text-lg font-bold text-[#172B4D]">Case Dossier Not Found</h2>
+          <p className="text-xs text-[#66758A] mt-1">Reference {caseId} does not exist in local workspace.</p>
           <Link
             href="/cases"
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#10233F] text-white text-xs font-bold rounded-xl"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#16325C] text-white text-xs font-bold rounded-xl hover:bg-[#112442] transition-colors"
           >
             <IconArrowLeft className="w-4 h-4" />
             <span>Return to All Matters</span>
@@ -174,11 +174,11 @@ function CaseScrutinyContent() {
   const severityBadge = (sev: FindingSeverity) => {
     switch (sev) {
       case "critical":
-        return "bg-rose-50 text-rose-700 border-rose-200 font-bold";
+        return "bg-[#C03945]/10 text-[#C03945] border-[#C03945]/20 font-bold";
       case "warning":
-        return "bg-amber-50 text-amber-700 border-amber-200 font-semibold";
+        return "bg-[#B7791F]/10 text-[#B7791F] border-[#B7791F]/20 font-semibold";
       case "info":
-        return "bg-slate-100 text-slate-700 border-slate-200";
+        return "bg-[#F7F9FC] text-[#4774A8] border-[#E3E9F2] font-medium";
     }
   };
 
@@ -186,7 +186,7 @@ function CaseScrutinyContent() {
 
   return (
     <AuthenticatedShell>
-      <div className="space-y-5">
+      <div className="space-y-5 max-w-7xl mx-auto">
         {/* =========================================================================
             1. GUIDED WORKFLOW STEPPER (Step 4 & 5 Focus)
            ========================================================================= */}
@@ -204,22 +204,22 @@ function CaseScrutinyContent() {
           <div className="flex items-center gap-3">
             <Link
               href={`/cases/${caseId}/documents`}
-              className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 transition-colors shadow-xs"
+              className="p-2.5 rounded-xl border border-[#E3E9F2] bg-white text-[#66758A] hover:text-[#172B4D] hover:bg-[#F7F9FC] transition-colors shadow-xs"
               title="Return to Documents"
             >
               <IconArrowLeft className="w-4 h-4" />
             </Link>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold text-[#1D5BD8] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs font-bold text-[#2457C5] bg-[#EEF4FF] px-2 py-0.5 rounded border border-[#2457C5]/20">
                   {currentCase.id}
                 </span>
-                <span className="text-slate-300">|</span>
-                <span className="text-xs font-bold text-slate-700">{currentCase.borrowerName}</span>
-                <span className="text-slate-300">|</span>
-                <span className="text-xs text-slate-500 font-medium">{currentCase.bankName}</span>
+                <span className="text-[#E3E9F2]">|</span>
+                <span className="text-xs font-bold text-[#172B4D]">{currentCase.borrowerName}</span>
+                <span className="text-[#E3E9F2]">|</span>
+                <span className="text-xs text-[#66758A] font-medium">{currentCase.bankName}</span>
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-[#10233F] mt-0.5">
+              <h1 className="text-2xl font-extrabold tracking-tight text-[#16325C] mt-1">
                 AI Scrutiny Workspace &amp; Evidence Grounding
               </h1>
             </div>
@@ -228,24 +228,24 @@ function CaseScrutinyContent() {
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold shadow-xs transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-[#E3E9F2] text-[#172B4D] hover:bg-[#F7F9FC] text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
-              <IconPlus className="w-4 h-4 text-[#1D5BD8]" />
+              <IconPlus className="w-4 h-4 text-[#2457C5]" />
               <span>Log Manual Flag</span>
             </button>
 
             <button
               onClick={handleRunAiAnalysis}
               disabled={analyzing}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#10233F] hover:bg-[#1a3860] text-white text-xs font-bold shadow-xs transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#16325C] hover:bg-[#112442] text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50"
             >
-              <IconScale className={`w-4 h-4 text-amber-400 ${analyzing ? "animate-spin" : ""}`} />
+              <IconScale className={`w-4 h-4 text-[#B7791F] ${analyzing ? "animate-spin" : ""}`} />
               <span>{analyzing ? "Cross-Checking Chain..." : "Re-Run AI Scrutiny"}</span>
             </button>
 
             <Link
               href={`/cases/${caseId}/queries`}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1D5BD8] hover:bg-[#1547B2] text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#2457C5] hover:bg-[#1B449E] text-white text-xs font-bold shadow-md shadow-[#2457C5]/20 transition-all"
             >
               <span>Manage Bank Queries</span>
               <IconArrowRight className="w-4 h-4" />
@@ -254,14 +254,14 @@ function CaseScrutinyContent() {
         </div>
 
         {/* Advocate Supervisory Banner */}
-        <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 text-xs text-blue-900 flex items-center justify-between shadow-xs">
+        <div className="rounded-xl border border-[#2457C5]/20 bg-[#EEF4FF] p-3.5 text-xs text-[#16325C] flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs">
           <div className="flex items-center gap-2.5">
-            <IconShield className="w-4 h-4 text-[#1D5BD8] flex-shrink-0" />
+            <IconShield className="w-4 h-4 text-[#2457C5] flex-shrink-0" />
             <span>
               <strong>Grounded Advocate Scrutiny Mode:</strong> Every AI discrepancy flag links to the exact deed page coordinates. Review each item to Accept, Dismiss, or Rephrase into a Bank Requisition.
             </span>
           </div>
-          <span className="text-[11px] font-mono text-blue-700 hidden md:inline font-bold">
+          <span className="text-[11px] font-mono text-[#2457C5] font-bold whitespace-nowrap self-start sm:self-auto">
             {reviewedFindingsCount} of {findings.length} Reviewed
           </span>
         </div>
@@ -269,18 +269,18 @@ function CaseScrutinyContent() {
         {/* =========================================================================
             2. SPLIT-SCREEN WORKSPACE (Left: Findings & Decision | Right: Grounded Viewer)
            ========================================================================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 h-[calc(100vh-230px)] min-h-[660px]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[660px] lg:h-[calc(100vh-230px)]">
           {/* LEFT PANE: Discrepancy Findings (7 Cols) */}
-          <div className="lg:col-span-7 flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+          <div className="lg:col-span-7 flex flex-col bg-white rounded-2xl border border-[#E3E9F2] shadow-xs overflow-hidden">
             {/* Filter Sub-bar */}
-            <div className="p-3 border-b border-slate-200 bg-slate-50/90 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-3">
+            <div className="p-3 border-b border-[#E3E9F2] bg-[#F7F9FC] flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-slate-500">Severity:</span>
+                  <span className="text-[11px] font-bold text-[#66758A]">Severity:</span>
                   <select
                     value={severityFilter}
                     onChange={(e) => setSeverityFilter(e.target.value)}
-                    className="py-1 px-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-semibold focus:outline-none"
+                    className="py-1 px-2.5 rounded-xl border border-[#E3E9F2] bg-white text-[#172B4D] text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#2457C5]"
                   >
                     <option value="all">All Severities</option>
                     <option value="critical">Critical Only</option>
@@ -290,11 +290,11 @@ function CaseScrutinyContent() {
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-slate-500">Decision:</span>
+                  <span className="text-[11px] font-bold text-[#66758A]">Decision:</span>
                   <select
                     value={decisionFilter}
                     onChange={(e) => setDecisionFilter(e.target.value)}
-                    className="py-1 px-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-semibold focus:outline-none"
+                    className="py-1 px-2.5 rounded-xl border border-[#E3E9F2] bg-white text-[#172B4D] text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#2457C5]"
                   >
                     <option value="all">All Statuses</option>
                     <option value="pending">Pending Review</option>
@@ -304,27 +304,27 @@ function CaseScrutinyContent() {
                 </div>
               </div>
 
-              <span className="text-[11px] text-slate-400 font-medium">
+              <span className="text-[11px] text-[#66758A] font-medium">
                 {filteredFindings.length} discrepancy flags
               </span>
             </div>
 
             {/* Scrollable Findings Cards */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F8FAFD]">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F7F9FC]">
               {filteredFindings.length === 0 ? (
-                <div className="p-12 text-center space-y-3 bg-white rounded-2xl border border-slate-200">
-                  <IconShield className="w-8 h-8 text-slate-300 mx-auto" />
-                  <h3 className="text-sm font-bold text-slate-800">
+                <div className="p-12 text-center space-y-3 bg-white rounded-2xl border border-[#E3E9F2]">
+                  <IconShield className="w-8 h-8 text-[#66758A]/50 mx-auto" />
+                  <h3 className="text-sm font-bold text-[#172B4D]">
                     {findings.length === 0 ? "No Scrutiny Findings Yet" : "No Discrepancies Match Filter"}
                   </h3>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  <p className="text-xs text-[#66758A] max-w-sm mx-auto">
                     {findings.length === 0
                       ? "Upload deeds in the Documents tab and run Title Scrutiny to analyze clauses, boundaries, and encumbrances."
                       : "Either no flags match your current filter, or title devolution appears clear."}
                   </p>
                   <button
                     onClick={handleRunAiAnalysis}
-                    className="px-4 py-2 rounded-xl bg-[#1D5BD8] hover:bg-[#1547B2] text-white text-xs font-bold mt-2 shadow-xs"
+                    className="px-4 py-2 rounded-xl bg-[#2457C5] hover:bg-[#1B449E] text-white text-xs font-bold mt-2 shadow-xs cursor-pointer"
                   >
                     Run Title Scrutiny
                   </button>
@@ -339,12 +339,12 @@ function CaseScrutinyContent() {
                       onClick={() => handleSelectFinding(finding)}
                       className={`p-4 rounded-xl border transition-all cursor-pointer space-y-3 relative bg-white ${
                         isSelected
-                          ? "border-[#1D5BD8] ring-2 ring-[#1D5BD8]/20 shadow-md"
-                          : "border-slate-200/90 hover:border-slate-300 hover:shadow-xs"
+                          ? "border-[#2457C5] ring-2 ring-[#2457C5]/20 shadow-md"
+                          : "border-[#E3E9F2] hover:border-[#2457C5]/40 hover:shadow-xs"
                       }`}
                     >
                       {/* Top Row: Category, Severity & Status Badge */}
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-wider border ${severityBadge(
@@ -353,25 +353,25 @@ function CaseScrutinyContent() {
                           >
                             {finding.severity}
                           </span>
-                          <span className="text-xs font-bold text-slate-800">
+                          <span className="text-xs font-bold text-[#172B4D]">
                             {finding.category}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-2">
                           {finding.lawyerDecision === "accepted" && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-[#16805D] border border-emerald-300 flex items-center gap-1">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#16805D]/10 text-[#16805D] border border-[#16805D]/20 flex items-center gap-1">
                               <IconCheck className="w-3 h-3" />
                               <span>Accepted by Advocate</span>
                             </span>
                           )}
                           {finding.lawyerDecision === "dismissed" && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#F7F9FC] text-[#66758A] border border-[#E3E9F2]">
                               Dismissed
                             </span>
                           )}
                           {finding.lawyerDecision === "pending" && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#B7791F]/10 text-[#B7791F] border border-[#B7791F]/20">
                               Pending Review
                             </span>
                           )}
@@ -380,16 +380,16 @@ function CaseScrutinyContent() {
 
                       {/* Finding Title & Plain-English Description */}
                       <div className="space-y-1">
-                        <h3 className="text-xs font-extrabold text-[#10233F] leading-snug">
+                        <h3 className="text-xs font-extrabold text-[#16325C] leading-snug">
                           {finding.title}
                         </h3>
-                        <p className="text-xs text-slate-600 leading-relaxed">
+                        <p className="text-xs text-[#66758A] leading-relaxed">
                           {finding.description}
                         </p>
                       </div>
 
                       {/* Grounded Evidence Box */}
-                      <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/90 space-y-1.5">
+                      <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-1.5">
                         <div className="flex items-center justify-between text-[10px] font-bold text-amber-900">
                           <span className="flex items-center gap-1">
                             <IconFileText className="w-3.5 h-3.5 text-amber-700" />
@@ -402,8 +402,8 @@ function CaseScrutinyContent() {
                         <blockquote className="text-[11px] text-amber-950 font-serif italic border-l-2 border-amber-400 pl-2 leading-relaxed">
                           &ldquo;{finding.evidenceSnippet}&rdquo;
                         </blockquote>
-                        <div className="text-[10px] text-slate-500 flex items-center justify-between pt-1 font-sans">
-                          <span className="text-[#1D5BD8] font-semibold">
+                        <div className="text-[10px] text-[#66758A] flex items-center justify-between pt-1 font-sans">
+                          <span className="text-[#2457C5] font-semibold">
                             {finding.isAiGenerated !== false ? "AI Grounded Title Finding" : "Advocate Document Note"}
                           </span>
                           <span>Confidence: {Math.round(finding.aiConfidence * 100)}%</span>
@@ -412,7 +412,7 @@ function CaseScrutinyContent() {
 
                       {/* Advocate Note if present */}
                       {finding.lawyerNotes && (
-                        <div className="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200 text-[11px] text-emerald-950 space-y-0.5">
+                        <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-[11px] text-emerald-950 space-y-0.5">
                           <strong className="block text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
                             Advocate Scrutiny Observation:
                           </strong>
@@ -422,16 +422,16 @@ function CaseScrutinyContent() {
 
                       {/* Action Bar */}
                       <div
-                        className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2"
+                        className="pt-2 border-t border-[#E3E9F2]/60 flex flex-wrap items-center justify-between gap-2"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => handleDecision(finding.id, "accepted")}
-                            className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors ${
+                            className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer ${
                               finding.lawyerDecision === "accepted"
                                 ? "bg-[#16805D] text-white shadow-xs"
-                                : "bg-emerald-50 text-[#16805D] hover:bg-emerald-100 border border-emerald-200"
+                                : "bg-[#16805D]/10 text-[#16805D] hover:bg-[#16805D]/20 border border-[#16805D]/20"
                             }`}
                           >
                             <IconCheck className="w-3.5 h-3.5" />
@@ -440,10 +440,10 @@ function CaseScrutinyContent() {
 
                           <button
                             onClick={() => handleDecision(finding.id, "dismissed")}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors ${
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
                               finding.lawyerDecision === "dismissed"
-                                ? "bg-slate-700 text-white"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                ? "bg-[#16325C] text-white"
+                                : "bg-[#F7F9FC] text-[#66758A] hover:bg-[#E3E9F2] border border-[#E3E9F2]"
                             }`}
                           >
                             <IconX className="w-3.5 h-3.5" />
@@ -455,16 +455,16 @@ function CaseScrutinyContent() {
                               setEditingNoteId(finding.id);
                               setNoteText(finding.lawyerNotes || "");
                             }}
-                            className="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 border border-slate-200 flex items-center gap-1"
+                            className="px-2.5 py-1 rounded-lg text-xs font-medium text-[#172B4D] hover:bg-[#F7F9FC] border border-[#E3E9F2] flex items-center gap-1 cursor-pointer"
                           >
-                            <IconEdit className="w-3.5 h-3.5 text-slate-400" />
+                            <IconEdit className="w-3.5 h-3.5 text-[#66758A]" />
                             <span>{finding.lawyerNotes ? "Edit Note" : "Add Note"}</span>
                           </button>
                         </div>
 
                         <button
                           onClick={() => handleCreateQueryFromFinding(finding)}
-                          className="px-3 py-1 rounded-lg text-xs font-bold text-[#1D5BD8] hover:bg-blue-50 border border-blue-200 inline-flex items-center gap-1 transition-all"
+                          className="px-3 py-1 rounded-lg text-xs font-bold text-[#2457C5] hover:bg-[#EEF4FF] border border-[#2457C5]/30 inline-flex items-center gap-1 transition-all cursor-pointer"
                         >
                           <IconPlus className="w-3.5 h-3.5" />
                           <span>Draft Bank Query</span>
@@ -474,7 +474,7 @@ function CaseScrutinyContent() {
                       {/* Inline Note Drawer */}
                       {editingNoteId === finding.id && (
                         <div
-                          className="pt-2 space-y-2 border-t border-slate-100"
+                          className="pt-2 space-y-2 border-t border-[#E3E9F2]/60"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <textarea
@@ -482,18 +482,18 @@ function CaseScrutinyContent() {
                             value={noteText}
                             onChange={(e) => setNoteText(e.target.value)}
                             placeholder="Record advocate notes regarding local revenue records, boundary survey, or required indemnity..."
-                            className="w-full p-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#1D5BD8] leading-relaxed"
+                            className="w-full p-2.5 text-xs rounded-xl border border-[#E3E9F2] focus:outline-none focus:ring-2 focus:ring-[#2457C5] leading-relaxed"
                           />
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => setEditingNoteId(null)}
-                              className="px-2.5 py-1 rounded text-xs text-slate-500 hover:bg-slate-100"
+                              className="px-2.5 py-1 rounded-lg text-xs text-[#66758A] hover:bg-[#F7F9FC]"
                             >
                               Cancel
                             </button>
                             <button
                               onClick={() => handleSaveNote(finding.id)}
-                              className="px-3.5 py-1 rounded-lg bg-[#10233F] text-white text-xs font-bold"
+                              className="px-3.5 py-1 rounded-lg bg-[#16325C] text-white text-xs font-bold hover:bg-[#112442]"
                             >
                               Save Note
                             </button>
@@ -508,19 +508,19 @@ function CaseScrutinyContent() {
           </div>
 
           {/* RIGHT PANE: Grounded Document Viewer (5 Cols) */}
-          <div className="lg:col-span-5 flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+          <div className="lg:col-span-5 flex flex-col bg-white rounded-2xl border border-[#E3E9F2] shadow-xs overflow-hidden">
             {/* Viewer Navigation Bar */}
-            <div className="p-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
+            <div className="p-3 border-b border-[#E3E9F2] bg-[#F7F9FC] flex items-center justify-between text-xs">
               {/* Document Selector Dropdown */}
               <div className="flex items-center gap-2 truncate max-w-[240px]">
-                <IconFileText className="w-4 h-4 text-[#1D5BD8] flex-shrink-0" />
+                <IconFileText className="w-4 h-4 text-[#2457C5] flex-shrink-0" />
                 <select
                   value={activeDocument?.id || ""}
                   onChange={(e) => {
                     setActiveDocOverrideId(e.target.value);
                     setActiveViewerPage(1);
                   }}
-                  className="bg-transparent font-bold text-slate-900 truncate focus:outline-none text-xs cursor-pointer"
+                  className="bg-transparent font-bold text-[#16325C] truncate focus:outline-none text-xs cursor-pointer"
                 >
                   {documents.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -531,19 +531,19 @@ function CaseScrutinyContent() {
               </div>
 
               {/* View Switcher Tabs */}
-              <div className="flex items-center gap-1 bg-slate-200/70 p-0.5 rounded-lg text-[11px] font-semibold">
+              <div className="flex items-center gap-1 bg-[#E3E9F2]/70 p-0.5 rounded-lg text-[11px] font-semibold">
                 <button
                   onClick={() => setViewerTab("visual")}
-                  className={`px-2 py-0.5 rounded-md transition-all ${
-                    viewerTab === "visual" ? "bg-white text-slate-900 shadow-xs font-bold" : "text-slate-600 hover:text-slate-900"
+                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                    viewerTab === "visual" ? "bg-white text-[#16325C] shadow-xs font-bold" : "text-[#66758A] hover:text-[#172B4D]"
                   }`}
                 >
                   Deed View
                 </button>
                 <button
                   onClick={() => setViewerTab("ocr")}
-                  className={`px-2 py-0.5 rounded-md transition-all ${
-                    viewerTab === "ocr" ? "bg-white text-slate-900 shadow-xs font-bold" : "text-slate-600 hover:text-slate-900"
+                  className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                    viewerTab === "ocr" ? "bg-white text-[#16325C] shadow-xs font-bold" : "text-[#66758A] hover:text-[#172B4D]"
                   }`}
                 >
                   OCR / Recitals
@@ -552,23 +552,23 @@ function CaseScrutinyContent() {
             </div>
 
             {/* Page Navigation Sub-header */}
-            <div className="px-4 py-2 border-b border-slate-100 bg-white flex items-center justify-between text-xs">
-              <span className="text-[11px] text-slate-500">
+            <div className="px-4 py-2 border-b border-[#E3E9F2]/60 bg-white flex items-center justify-between text-xs">
+              <span className="text-[11px] text-[#66758A]">
                 Grounding: Page {activeViewerPage} of {activeDocument?.pageCount || 14}
               </span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveViewerPage(Math.max(1, activeViewerPage - 1))}
-                  className="px-2.5 py-0.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-[11px] font-medium"
+                  className="px-2.5 py-0.5 rounded-lg border border-[#E3E9F2] hover:bg-[#F7F9FC] text-[11px] font-medium text-[#172B4D] cursor-pointer"
                 >
                   Prev
                 </button>
-                <span className="font-mono text-[11px] font-bold text-slate-700">
+                <span className="font-mono text-[11px] font-bold text-[#16325C]">
                   Page {activeViewerPage}
                 </span>
                 <button
                   onClick={() => setActiveViewerPage(activeViewerPage + 1)}
-                  className="px-2.5 py-0.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-[11px] font-medium"
+                  className="px-2.5 py-0.5 rounded-lg border border-[#E3E9F2] hover:bg-[#F7F9FC] text-[11px] font-medium text-[#172B4D] cursor-pointer"
                 >
                   Next
                 </button>
@@ -576,27 +576,27 @@ function CaseScrutinyContent() {
             </div>
 
             {/* Document Surface Preview */}
-            <div className="flex-1 bg-[#F5F7FB] p-4 overflow-y-auto">
+            <div className="flex-1 bg-[#F7F9FC] p-4 overflow-y-auto">
               {activeDocument?.fileUrl && viewerTab === "visual" ? (
                 /* Real PDF Live Embed */
                 <iframe
                   src={`${activeDocument.fileUrl}${session?.access_token && !activeDocument.fileUrl.includes("token=") ? (activeDocument.fileUrl.includes("?") ? "&" : "?") + "token=" + session.access_token : ""}#page=${activeViewerPage}`}
-                  className="w-full h-full min-h-[520px] rounded-xl border border-slate-300 shadow-inner bg-white"
+                  className="w-full h-full min-h-[520px] rounded-xl border border-[#E3E9F2] shadow-inner bg-white"
                   title="Document Preview"
                 />
               ) : viewerTab === "ocr" ? (
                 /* OCR / Recitals Plaintext Stream View */
-                <div className="bg-white rounded-xl border border-slate-300 p-5 font-mono text-[11px] text-slate-800 space-y-3 leading-relaxed shadow-sm">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <span className="font-bold text-slate-900 uppercase tracking-wider text-[10px]">
+                <div className="bg-white rounded-xl border border-[#E3E9F2] p-5 font-mono text-[11px] text-[#172B4D] space-y-3 leading-relaxed shadow-xs">
+                  <div className="flex items-center justify-between border-b border-[#E3E9F2] pb-2">
+                    <span className="font-bold text-[#16325C] uppercase tracking-wider text-[10px]">
                       Extracted Text Stream (Page {activeViewerPage})
                     </span>
-                    <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded">
+                    <span className="text-[10px] text-[#16805D] font-semibold bg-[#16805D]/10 px-2 py-0.5 rounded border border-[#16805D]/20">
                       High Density OCR Match
                     </span>
                   </div>
 
-                  <p className="text-slate-700 whitespace-pre-wrap font-sans text-xs">
+                  <p className="text-[#172B4D] whitespace-pre-wrap font-sans text-xs">
                     {selectedFinding?.evidenceSnippet ? (
                       <>
                         <span>...and the Vendor further covenants with the Purchaser that the schedule property is free from all encumbrances, attachments, and charges. </span>
@@ -612,27 +612,27 @@ function CaseScrutinyContent() {
                 </div>
               ) : (
                 /* High Fidelity Registered Deed Preview Sheet */
-                <div className="max-w-md mx-auto bg-white border border-slate-300 shadow-md rounded-xl p-6 font-serif text-[11px] text-slate-800 space-y-4 relative select-text leading-relaxed">
+                <div className="max-w-md mx-auto bg-white border border-[#E3E9F2] shadow-sm rounded-xl p-6 font-serif text-[11px] text-[#172B4D] space-y-4 relative select-text leading-relaxed">
                   {/* Government Registry Stamp Header */}
-                  <div className="text-center pb-3 border-b border-slate-200 space-y-1 font-sans">
-                    <div className="inline-block px-3 py-0.5 rounded border border-slate-400 font-bold text-[9px] uppercase tracking-widest text-slate-700">
+                  <div className="text-center pb-3 border-b border-[#E3E9F2] space-y-1 font-sans">
+                    <div className="inline-block px-3 py-0.5 rounded border border-[#E3E9F2] bg-[#F7F9FC] font-bold text-[9px] uppercase tracking-widest text-[#66758A]">
                       Government of Karnataka | Department of Registration
                     </div>
-                    <h4 className="font-bold text-xs uppercase tracking-wide text-slate-900 mt-1">
+                    <h4 className="font-bold text-xs uppercase tracking-wide text-[#16325C] mt-1">
                       Certified Extract of Registered Conveyance
                     </h4>
-                    <p className="text-[10px] text-slate-500 font-mono">
+                    <p className="text-[10px] text-[#66758A] font-mono">
                       Ref: {activeDocument?.registrationNumber || "BNG(U)-BK1-4192/2016"} | {activeDocument?.subRegistrarOffice || "SRO Office"}
                     </p>
                   </div>
 
                   {/* Recital Opening */}
-                  <p className="text-slate-700 text-justify">
+                  <p className="text-[#172B4D] text-justify">
                     THIS ABSOLUTE CONVEYANCE is executed on the schedule date by the Vendor Sri M. Venkataswamy in favor of the Purchaser Sri Rajesh Kumar conveying all marketable rights, hereditaments, and interest over the subject schedule property free from registered encumbrances, attachments, and mortgage lis pendens...
                   </p>
 
                   {/* Grounded Evidence Highlight Box */}
-                  <div className="p-3 bg-amber-50/90 border-2 border-amber-400 rounded-lg relative shadow-xs space-y-1 font-sans">
+                  <div className="p-3 bg-amber-50 border border-amber-300 rounded-lg relative shadow-xs space-y-1 font-sans">
                     <div className="flex items-center justify-between text-[9px] font-bold text-amber-900 uppercase tracking-wider">
                       <span>Highlighted Cited Clause (Page {activeViewerPage})</span>
                       <span className="font-mono">Match: 94%</span>
@@ -644,11 +644,11 @@ function CaseScrutinyContent() {
                   </div>
 
                   {/* Schedule Description */}
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1 font-sans text-[10px]">
-                    <strong className="block text-slate-700 font-bold uppercase tracking-wider">
+                  <div className="p-3 rounded-lg bg-[#F7F9FC] border border-[#E3E9F2] space-y-1 font-sans text-[10px]">
+                    <strong className="block text-[#16325C] font-bold uppercase tracking-wider">
                       Schedule Property Particulars:
                     </strong>
-                    <div className="grid grid-cols-2 gap-1 text-slate-600">
+                    <div className="grid grid-cols-2 gap-1 text-[#66758A]">
                       <div>Survey No: {currentCase.surveyNumber}</div>
                       <div>Property Type: {currentCase.propertyType}</div>
                       <div>North: {currentCase.boundaries.north}</div>
@@ -657,7 +657,7 @@ function CaseScrutinyContent() {
                   </div>
 
                   {/* Stamp Seal Simulation */}
-                  <div className="pt-2 flex items-center justify-between border-t border-slate-200 text-[10px] text-slate-400 font-sans">
+                  <div className="pt-2 flex items-center justify-between border-t border-[#E3E9F2] text-[10px] text-[#66758A] font-sans">
                     <span>Sub-Registrar Seal Verified</span>
                     <span className="font-mono">Page {activeViewerPage}</span>
                   </div>
@@ -669,13 +669,13 @@ function CaseScrutinyContent() {
 
         {/* Modal: Add Manual Finding */}
         {showAddModal && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="font-bold text-base text-[#10233F]">Log Advocate Scrutiny Observation</h3>
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-[#E3E9F2]">
+              <div className="flex items-center justify-between border-b border-[#E3E9F2] pb-3">
+                <h3 className="font-bold text-base text-[#16325C]">Log Advocate Scrutiny Observation</h3>
                 <button
                   onClick={() => setShowAddModal(false)}
-                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500"
+                  className="p-1.5 rounded-lg hover:bg-[#F7F9FC] text-[#66758A] transition-colors"
                 >
                   <IconX className="w-4 h-4" />
                 </button>
@@ -683,24 +683,24 @@ function CaseScrutinyContent() {
 
               <form onSubmit={handleSaveManualFinding} className="space-y-3 text-xs">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Observation Title</label>
+                  <label className="block font-semibold text-[#172B4D] mb-1">Observation Title</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Unregistered Release Deed Recital"
                     value={manualTitle}
                     onChange={(e) => setManualTitle(e.target.value)}
-                    className="w-full p-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#1D5BD8]"
+                    className="w-full p-2.5 rounded-xl border border-[#E3E9F2] focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Source Document</label>
+                    <label className="block font-semibold text-[#172B4D] mb-1">Source Document</label>
                     <select
                       value={manualDocId}
                       onChange={(e) => setManualDocId(e.target.value)}
-                      className="w-full p-2 rounded-lg border border-slate-300"
+                      className="w-full p-2 rounded-xl border border-[#E3E9F2] text-xs bg-white text-[#172B4D]"
                     >
                       {documents.map((d) => (
                         <option key={d.id} value={d.id}>
@@ -711,24 +711,24 @@ function CaseScrutinyContent() {
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Page Number</label>
+                    <label className="block font-semibold text-[#172B4D] mb-1">Page Number</label>
                     <input
                       type="number"
                       min={1}
                       value={manualPage}
                       onChange={(e) => setManualPage(Number(e.target.value))}
-                      className="w-full p-2 rounded-lg border border-slate-300"
+                      className="w-full p-2 rounded-xl border border-[#E3E9F2] text-xs"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Category</label>
+                    <label className="block font-semibold text-[#172B4D] mb-1">Category</label>
                     <select
                       value={manualCategory}
                       onChange={(e) => setManualCategory(e.target.value as FindingCategory)}
-                      className="w-full p-2 rounded-lg border border-slate-300"
+                      className="w-full p-2 rounded-xl border border-[#E3E9F2] text-xs bg-white text-[#172B4D]"
                     >
                       <option value="Chain of Title Break">Chain of Title Break</option>
                       <option value="Missing Mandatory Document">Missing Mandatory Document</option>
@@ -739,11 +739,11 @@ function CaseScrutinyContent() {
                   </div>
 
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Severity</label>
+                    <label className="block font-semibold text-[#172B4D] mb-1">Severity</label>
                     <select
                       value={manualSeverity}
                       onChange={(e) => setManualSeverity(e.target.value as FindingSeverity)}
-                      className="w-full p-2 rounded-lg border border-slate-300 font-semibold"
+                      className="w-full p-2 rounded-xl border border-[#E3E9F2] font-semibold text-xs bg-white text-[#172B4D]"
                     >
                       <option value="critical">Critical</option>
                       <option value="warning">Warning</option>
@@ -753,28 +753,28 @@ function CaseScrutinyContent() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Description &amp; Reasoning</label>
+                  <label className="block font-semibold text-[#172B4D] mb-1">Description &amp; Reasoning</label>
                   <textarea
                     rows={3}
                     required
                     placeholder="Describe legal flaw, missing recital, or revenue mismatch..."
                     value={manualDesc}
                     onChange={(e) => setManualDesc(e.target.value)}
-                    className="w-full p-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#1D5BD8]"
+                    className="w-full p-2.5 rounded-xl border border-[#E3E9F2] focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E3E9F2]">
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="px-4 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100"
+                    className="px-4 py-2 rounded-xl text-[#66758A] hover:bg-[#F7F9FC]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-1.5 rounded-lg bg-[#1D5BD8] text-white font-bold"
+                    className="px-5 py-2 rounded-xl bg-[#2457C5] hover:bg-[#1B449E] text-white font-bold cursor-pointer transition-colors"
                   >
                     Save Finding
                   </button>
@@ -790,7 +790,7 @@ function CaseScrutinyContent() {
 
 export default function CaseScrutinyPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs text-slate-500">Loading AI Scrutiny Workspace...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-[#66758A]">Loading AI Scrutiny Workspace...</div>}>
       <CaseScrutinyContent />
     </Suspense>
   );

@@ -12,6 +12,7 @@ import {
   IconCheck,
   IconShield,
   IconX,
+  IconSliders,
 } from "@/components/icons";
 
 export default function SettingsTemplatesPage() {
@@ -54,48 +55,55 @@ export default function SettingsTemplatesPage() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#10233F]">
+            <h1 className="text-2xl font-extrabold tracking-tight text-[#16325C]">
               Chamber &amp; Advocate Settings
             </h1>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-[#66758A] mt-1">
               Configure bank-specific scrutiny checklist rules, chain limits, and mandatory documents.
             </p>
           </div>
         </div>
 
         {/* Settings Navigation Tabs */}
-        <div className="flex border-b border-slate-200 text-xs font-semibold space-x-6">
+        <div className="flex border-b border-[#E3E9F2] text-xs font-semibold space-x-6 overflow-x-auto pb-px">
           <Link
             href="/settings/profile"
-            className="pb-3 text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-colors"
+            className="pb-3 text-[#66758A] hover:text-[#172B4D] flex items-center gap-2 transition-colors whitespace-nowrap"
           >
             <IconUser className="w-4 h-4" />
             <span>Advocate Profile</span>
           </Link>
           <Link
             href="/settings/team"
-            className="pb-3 text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-colors"
+            className="pb-3 text-[#66758A] hover:text-[#172B4D] flex items-center gap-2 transition-colors whitespace-nowrap"
           >
             <IconUsers className="w-4 h-4" />
             <span>Chamber Team &amp; Roles</span>
           </Link>
           <Link
             href="/settings/templates"
-            className="pb-3 border-b-2 border-[#356AE6] text-[#356AE6] flex items-center gap-2"
+            className="pb-3 border-b-2 border-[#2457C5] text-[#2457C5] flex items-center gap-2 whitespace-nowrap"
           >
             <IconSettings className="w-4 h-4" />
             <span>Bank Scrutiny Checklists</span>
           </Link>
+          <Link
+            href="/settings/preferences"
+            className="pb-3 text-[#66758A] hover:text-[#172B4D] flex items-center gap-2 transition-colors whitespace-nowrap"
+          >
+            <IconSliders className="w-4 h-4" />
+            <span>Preferences</span>
+          </Link>
         </div>
 
         {/* Guidance Notice */}
-        <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-xs text-blue-900 flex items-start gap-3">
-          <IconShield className="w-5 h-5 text-[#356AE6] flex-shrink-0 mt-0.5" />
+        <div className="rounded-xl border border-[#2457C5]/20 bg-[#EEF4FF] p-4 text-xs text-[#16325C] flex items-start gap-3 shadow-xs">
+          <IconShield className="w-5 h-5 text-[#2457C5] flex-shrink-0 mt-0.5" />
           <div className="space-y-0.5">
-            <strong className="font-semibold text-[#10233F]">
-              Configurable Legal Rule Templates (No Hardcoded Assumptions):
+            <strong className="font-bold text-[#16325C]">
+              Configurable Legal Rule Templates (Bank Policy Compliant):
             </strong>
-            <p className="text-blue-900/80 leading-relaxed text-[11px]">
+            <p className="text-[#16325C]/80 leading-relaxed text-[11px]">
               Every lending institution specifies its own statutory minimums (e.g. 30-year unbroken chain vs 13-year statutory limitation) and mandatory local revenue certificates. Adjust parameters below to customize the scrutiny checklist for each bank.
             </p>
           </div>
@@ -106,20 +114,20 @@ export default function SettingsTemplatesPage() {
           {templates.map((tmpl) => (
             <div
               key={tmpl.id}
-              className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-6 space-y-4"
+              className="bg-white rounded-2xl border border-[#E3E9F2] shadow-xs p-6 space-y-5"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E3E9F2]/60 pb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm text-[#10233F]">{tmpl.title}</h3>
-                    <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                    <h3 className="font-bold text-sm text-[#16325C]">{tmpl.title}</h3>
+                    <span className="text-[10px] font-semibold text-[#2457C5] bg-[#EEF4FF] border border-[#2457C5]/20 px-2 py-0.5 rounded">
                       {tmpl.category}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">{tmpl.description}</p>
+                  <p className="text-xs text-[#66758A] mt-0.5">{tmpl.description}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold text-slate-500">
+                  <span className="text-[10px] font-semibold text-[#66758A] bg-[#F7F9FC] border border-[#E3E9F2] px-2.5 py-1 rounded-xl">
                     Jurisdiction: {tmpl.stateJurisdiction}
                   </span>
                 </div>
@@ -127,8 +135,8 @@ export default function SettingsTemplatesPage() {
 
               {/* Scrutiny Parameters */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-semibold text-slate-600 block">
+                <div className="p-4 rounded-xl bg-[#F7F9FC] border border-[#E3E9F2] space-y-1">
+                  <span className="text-[11px] font-semibold text-[#66758A] block">
                     Minimum Chain of Title Period:
                   </span>
                   {editingTemplateId === tmpl.id ? (
@@ -139,22 +147,22 @@ export default function SettingsTemplatesPage() {
                         max={60}
                         value={minChain}
                         onChange={(e) => setMinChain(Number(e.target.value))}
-                        className="w-20 p-1.5 rounded border border-slate-300 bg-white font-mono text-xs"
+                        className="w-20 px-2 py-1.5 rounded-xl border border-[#E3E9F2] bg-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
                       />
-                      <span className="text-slate-600">Years</span>
+                      <span className="text-[#66758A]">Years</span>
                     </div>
                   ) : (
-                    <span className="font-bold font-mono text-base text-[#10233F]">
+                    <span className="font-bold font-mono text-base text-[#16325C]">
                       {tmpl.minChainYears} Years Devolution
                     </span>
                   )}
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-[#66758A]">
                     Devolution from mother deed through current conveyance
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-100 space-y-1">
-                  <span className="text-[11px] font-semibold text-slate-600 block">
+                <div className="p-4 rounded-xl bg-[#F7F9FC] border border-[#E3E9F2] space-y-1">
+                  <span className="text-[11px] font-semibold text-[#66758A] block">
                     Minimum Form 15 Encumbrance Search:
                   </span>
                   {editingTemplateId === tmpl.id ? (
@@ -165,16 +173,16 @@ export default function SettingsTemplatesPage() {
                         max={60}
                         value={minEc}
                         onChange={(e) => setMinEc(Number(e.target.value))}
-                        className="w-20 p-1.5 rounded border border-slate-300 bg-white font-mono text-xs"
+                        className="w-20 px-2 py-1.5 rounded-xl border border-[#E3E9F2] bg-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
                       />
-                      <span className="text-slate-600">Years</span>
+                      <span className="text-[#66758A]">Years</span>
                     </div>
                   ) : (
-                    <span className="font-bold font-mono text-base text-[#10233F]">
+                    <span className="font-bold font-mono text-base text-[#16325C]">
                       {tmpl.minEcYears} Years Continuous EC
                     </span>
                   )}
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-[#66758A]">
                     Unbroken jurisdictional Nil Encumbrance Certificate
                   </p>
                 </div>
@@ -182,20 +190,20 @@ export default function SettingsTemplatesPage() {
 
               {/* Mandatory Checklist Documents */}
               <div className="space-y-2 text-xs">
-                <span className="font-semibold text-slate-700 block">
+                <span className="font-bold text-[#172B4D] block">
                   Mandatory Documents Checklist ({tmpl.mandatoryDocuments.length} Required):
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {tmpl.mandatoryDocuments.map((doc, idx) => (
                     <div
                       key={idx}
-                      className="p-2 rounded-lg border border-slate-200/80 bg-slate-50 flex items-center justify-between text-xs"
+                      className="p-2.5 rounded-xl border border-[#E3E9F2] bg-[#F7F9FC] flex items-center justify-between text-xs"
                     >
-                      <span className="text-slate-800">{doc}</span>
+                      <span className="text-[#172B4D]">{doc}</span>
                       {editingTemplateId === tmpl.id && (
                         <button
                           onClick={() => handleRemoveDocFromTemplate(tmpl, idx)}
-                          className="text-slate-400 hover:text-rose-600 p-0.5"
+                          className="text-[#66758A] hover:text-[#C03945] p-1 rounded-lg transition-colors cursor-pointer"
                           title="Remove item"
                         >
                           <IconX className="w-3.5 h-3.5" />
@@ -212,12 +220,12 @@ export default function SettingsTemplatesPage() {
                       placeholder="Add another mandatory document (e.g. Village Map demarcation)..."
                       value={newDocText}
                       onChange={(e) => setNewDocText(e.target.value)}
-                      className="flex-1 p-2 rounded-lg border border-slate-300 text-xs"
+                      className="flex-1 px-3 py-2 rounded-xl border border-[#E3E9F2] text-xs focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
                     />
                     <button
                       type="button"
                       onClick={() => handleAddDocToTemplate(tmpl)}
-                      className="px-3 py-1.5 bg-[#356AE6] text-white rounded-lg font-semibold text-xs"
+                      className="px-4 py-2 bg-[#2457C5] hover:bg-[#1B449E] text-white rounded-xl font-bold text-xs transition-colors cursor-pointer"
                     >
                       Add
                     </button>
@@ -226,18 +234,18 @@ export default function SettingsTemplatesPage() {
               </div>
 
               {/* Template Controls */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 text-xs">
+              <div className="pt-3 border-t border-[#E3E9F2]/60 flex items-center justify-end gap-2 text-xs">
                 {editingTemplateId === tmpl.id ? (
                   <>
                     <button
                       onClick={() => setEditingTemplateId(null)}
-                      className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                      className="px-4 py-2 rounded-xl border border-[#E3E9F2] text-[#66758A] hover:bg-[#F7F9FC] transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => saveEdit(tmpl)}
-                      className="px-4 py-1.5 rounded-lg bg-[#16805D] text-white font-semibold flex items-center gap-1"
+                      className="px-5 py-2 rounded-xl bg-[#16805D] hover:bg-[#126b4d] text-white font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <IconCheck className="w-3.5 h-3.5" />
                       <span>Save Parameters</span>
@@ -246,9 +254,9 @@ export default function SettingsTemplatesPage() {
                 ) : (
                   <button
                     onClick={() => startEdit(tmpl)}
-                    className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
+                    className="px-4 py-2 rounded-xl bg-[#F7F9FC] hover:bg-[#E3E9F2] text-[#172B4D] font-bold border border-[#E3E9F2] transition-colors cursor-pointer"
                   >
-                    Edit Template Parameters
+                    Configure Rules
                   </button>
                 )}
               </div>

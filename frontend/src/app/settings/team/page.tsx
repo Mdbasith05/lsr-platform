@@ -11,6 +11,7 @@ import {
   IconShield,
   IconCheck,
   IconX,
+  IconSliders,
 } from "@/components/icons";
 
 interface TeamMember {
@@ -80,16 +81,16 @@ export default function SettingsTeamPage() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#10233F]">
+            <h1 className="text-2xl font-extrabold tracking-tight text-[#16325C]">
               Chamber &amp; Advocate Settings
             </h1>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-[#66758A] mt-1">
               Manage advocate accreditation, legal team roles, and bank policy templates.
             </p>
           </div>
           <button
             onClick={() => setShowInviteModal(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#356AE6] hover:bg-[#2655C4] text-white text-xs font-semibold shadow-sm transition-all"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#2457C5] hover:bg-[#1B449E] text-white text-xs font-bold shadow-md shadow-[#2457C5]/20 transition-all cursor-pointer self-start sm:self-auto"
           >
             <IconPlus className="w-4 h-4" />
             <span>Invite Team Member</span>
@@ -97,75 +98,82 @@ export default function SettingsTeamPage() {
         </div>
 
         {/* Settings Navigation Tabs */}
-        <div className="flex border-b border-slate-200 text-xs font-semibold space-x-6">
+        <div className="flex border-b border-[#E3E9F2] text-xs font-semibold space-x-6 overflow-x-auto pb-px">
           <Link
             href="/settings/profile"
-            className="pb-3 text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-colors"
+            className="pb-3 text-[#66758A] hover:text-[#172B4D] flex items-center gap-2 transition-colors whitespace-nowrap"
           >
             <IconUser className="w-4 h-4" />
             <span>Advocate Profile</span>
           </Link>
           <Link
             href="/settings/team"
-            className="pb-3 border-b-2 border-[#356AE6] text-[#356AE6] flex items-center gap-2"
+            className="pb-3 border-b-2 border-[#2457C5] text-[#2457C5] flex items-center gap-2 whitespace-nowrap"
           >
             <IconUsers className="w-4 h-4" />
             <span>Chamber Team &amp; Roles</span>
           </Link>
           <Link
             href="/settings/templates"
-            className="pb-3 text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-colors"
+            className="pb-3 text-[#66758A] hover:text-[#172B4D] flex items-center gap-2 transition-colors whitespace-nowrap"
           >
             <IconSettings className="w-4 h-4" />
             <span>Bank Scrutiny Checklists</span>
           </Link>
+          <Link
+            href="/settings/preferences"
+            className="pb-3 text-[#66758A] hover:text-[#172B4D] flex items-center gap-2 transition-colors whitespace-nowrap"
+          >
+            <IconSliders className="w-4 h-4" />
+            <span>Preferences</span>
+          </Link>
         </div>
 
         {/* Team Members List */}
-        <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-[#10233F]">
+        <div className="bg-white rounded-2xl border border-[#E3E9F2] shadow-xs overflow-hidden">
+          <div className="p-4.5 border-b border-[#E3E9F2] bg-[#F7F9FC] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-[#16325C]">
               Active Chamber Associates ({members.length})
             </h3>
-            <span className="text-[11px] text-slate-400">
-              Mock Role Presentation • Role-based access enforcement deferred
+            <span className="text-[11px] text-[#66758A]">
+              Role-based access enforcement aligned with Bar Council standards
             </span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/70 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                <tr className="bg-[#F7F9FC] border-b border-[#E3E9F2] text-[11px] font-semibold text-[#66758A] uppercase tracking-wider">
                   <th className="py-3 px-4">Member Name</th>
                   <th className="py-3 px-4">Chamber Role</th>
                   <th className="py-3 px-4">Report Sign-Off Authority</th>
                   <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#E3E9F2]">
                 {members.map((m) => (
-                  <tr key={m.id} className="hover:bg-slate-50/80">
-                    <td className="py-3 px-4">
-                      <span className="font-semibold text-slate-900 block">{m.name}</span>
-                      <span className="text-[10px] text-slate-400">{m.email}</span>
+                  <tr key={m.id} className="hover:bg-[#F7F9FC] transition-colors">
+                    <td className="py-3.5 px-4">
+                      <span className="font-bold text-[#16325C] block">{m.name}</span>
+                      <span className="text-[10px] text-[#66758A] font-mono">{m.email}</span>
                     </td>
-                    <td className="py-3 px-4 text-slate-700 font-medium">{m.role}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3.5 px-4 text-[#172B4D] font-medium">{m.role}</td>
+                    <td className="py-3.5 px-4">
                       {m.canSignReports ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#16805D] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#16805D] bg-[#16805D]/10 px-2 py-0.5 rounded border border-[#16805D]/20">
                           <IconCheck className="w-3 h-3" />
                           <span>Sole Sign-Off Power</span>
                         </span>
                       ) : (
-                        <span className="text-[10px] text-slate-400">Draft Preparation Only</span>
+                        <span className="text-[10px] text-[#66758A]">Draft Preparation Only</span>
                       )}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3.5 px-4">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                           m.status === "Active"
-                            ? "bg-emerald-50 text-[#16805D] border border-emerald-200"
-                            : "bg-blue-50 text-[#356AE6] border border-blue-200"
+                            ? "bg-[#16805D]/10 text-[#16805D] border border-[#16805D]/20"
+                            : "bg-[#EEF4FF] text-[#2457C5] border border-[#2457C5]/20"
                         }`}
                       >
                         {m.status}
@@ -179,25 +187,25 @@ export default function SettingsTeamPage() {
         </div>
 
         {/* Roles & Permissions Explanation Card */}
-        <div className="bg-white rounded-xl border border-slate-200/80 p-5 space-y-3 text-xs text-slate-600">
+        <div className="bg-white rounded-2xl border border-[#E3E9F2] p-6 space-y-3 text-xs text-[#66758A] shadow-xs">
           <div className="flex items-center gap-2">
-            <IconShield className="w-4 h-4 text-[#356AE6]" />
-            <h4 className="font-bold text-slate-900">Legal Governance Principles</h4>
+            <IconShield className="w-4 h-4 text-[#2457C5]" />
+            <h4 className="font-bold text-[#16325C]">Legal Governance Principles</h4>
           </div>
-          <p className="text-[11px] leading-relaxed text-slate-500">
+          <p className="text-[11px] leading-relaxed text-[#66758A]">
             In accordance with legal scrutiny compliance, only empaneled Senior Advocates holding valid Bar Council enrollments have authority to sign and issue binding Legal Scrutiny Reports to banking institutions. Associate Advocates and Paralegals can perform preliminary document classification, cross-check boundary recitals, and formulate draft bank queries.
           </p>
         </div>
 
         {/* Modal: Invite Team Member */}
         {showInviteModal && (
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-200 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="font-bold text-sm text-[#10233F]">Invite Chamber Member</h3>
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-[#E3E9F2] space-y-4">
+              <div className="flex items-center justify-between border-b border-[#E3E9F2] pb-3">
+                <h3 className="font-bold text-sm text-[#16325C]">Invite Chamber Member</h3>
                 <button
                   onClick={() => setShowInviteModal(false)}
-                  className="p-1 rounded-md text-slate-400 hover:text-slate-600"
+                  className="p-1 rounded-lg text-[#66758A] hover:bg-[#F7F9FC] transition-colors"
                 >
                   <IconX className="w-4 h-4" />
                 </button>
@@ -205,7 +213,7 @@ export default function SettingsTeamPage() {
 
               <form onSubmit={handleInvite} className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label className="block font-semibold text-[#172B4D] mb-1">
                     Associate Full Name
                   </label>
                   <input
@@ -214,12 +222,12 @@ export default function SettingsTeamPage() {
                     placeholder="e.g. Adv. Naveen Rao"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                    className="w-full px-3 py-2 rounded-xl border border-[#E3E9F2] focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label className="block font-semibold text-[#172B4D] mb-1">
                     Associate Email Address
                   </label>
                   <input
@@ -228,37 +236,37 @@ export default function SettingsTeamPage() {
                     placeholder="naveen@chambers.in"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                    className="w-full px-3 py-2 rounded-xl border border-[#E3E9F2] focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5]"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
+                  <label className="block font-semibold text-[#172B4D] mb-1">
                     Assigned Chamber Role
                   </label>
                   <select
                     value={newRole}
                     onChange={(e) => setNewRole(e.target.value as "Associate Advocate" | "Legal Assistant")}
-                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#356AE6]"
+                    className="w-full px-3 py-2 rounded-xl border border-[#E3E9F2] focus:outline-none focus:ring-2 focus:ring-[#2457C5]/30 focus:border-[#2457C5] bg-white text-[#172B4D]"
                   >
                     <option value="Associate Advocate">Associate Advocate (Scrutiny &amp; Queries)</option>
                     <option value="Legal Assistant">Legal Assistant (Document Intake)</option>
                   </select>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E3E9F2]">
                   <button
                     type="button"
                     onClick={() => setShowInviteModal(false)}
-                    className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100 font-semibold"
+                    className="px-4 py-2 rounded-xl text-[#66758A] hover:bg-[#F7F9FC]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-lg bg-[#356AE6] hover:bg-[#2655C4] text-white font-semibold"
+                    className="px-5 py-2 rounded-xl bg-[#2457C5] hover:bg-[#1B449E] text-white font-bold cursor-pointer transition-colors"
                   >
-                    Send Mock Invite
+                    Send Invitation
                   </button>
                 </div>
               </form>

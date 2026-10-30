@@ -1,42 +1,56 @@
 @import "tailwindcss";
 
 @theme {
-  --color-legal-navy: #10233F;
-  --color-legal-navy-dark: #0A1628;
-  --color-trust-blue: #356AE6;
-  --color-trust-blue-hover: #2655C4;
-  --color-page-bg: #F4F7FB;
+  --color-primary-blue: #2457C5;
+  --color-primary-blue-hover: #1B449E;
+  --color-deep-navy: #16325C;
+  --color-light-blue-surface: #EEF4FF;
+  --color-primary-text: #172B4D;
+  --color-secondary-text: #66758A;
+  --color-muted-border: #E3E9F2;
+  --color-page-bg: #F7F9FC;
+  --color-success: #16805D;
+  --color-warning: #B7791F;
+  --color-error: #C03945;
+  --color-neutral-info: #4774A8;
+
+  /* Legacy aliases for backward compatibility */
+  --color-legal-navy: #16325C;
+  --color-legal-navy-dark: #0F223D;
+  --color-trust-blue: #2457C5;
+  --color-trust-blue-hover: #1B449E;
   --color-success-green: #16805D;
 }
 
 :root {
-  --background: #F4F7FB;
-  --foreground: #10233F;
+  --background: #F7F9FC;
+  --foreground: #172B4D;
   --card-bg: #FFFFFF;
 }
 
 body {
-  background-color: #F4F7FB;
-  color: #10233F;
+  background-color: #F7F9FC;
+  color: #172B4D;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
 }
 
-/* Custom scrollbar for legal document split viewers */
+/* Custom scrollbar for legal document split viewers and tables */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #F7F9FC;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #CBD5E1;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #94A3B8;
 }
 
 /* Print styling for formal Draft LSR generation */
