@@ -81,25 +81,25 @@ def run_ai_scrutiny(
     # Execute AI Analysis
     generated_findings = ai_scrutiny_service.analyze_case_documents(case_dict, docs_payload)
 
-    # Persist findings with intelligent deduplication:
-    # Match by normalized (category, title) to prevent duplicates while updating confidence/details on pending items
+    # Persist findings with intelligent refresh:
+    # 1. Preserve manual advocate findings and findings that have already been reviewed/decided.
+    # 2. Clear out unreviewed, automated AI findings ('pending') so re-runs never leak stale hallucinations.
     existing_findings = db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == case.id).all()
-    existing_map = {
-        (f.category.lower().strip(), f.title.lower().strip()): f
-        for f in existing_findings
-    }
-    saved_findings = []
+    preserved_map = {}
+    for f in existing_findings:
+        if not f.is_ai_generated or f.lawyer_decision != "pending":
+            key = (f.category.lower().strip(), f.title.lower().strip())
+            preserved_map[key] = f
+        else:
+            # Delete stale, unreviewed AI findings from previous runs
+            db.delete(f)
+    db.flush()
 
+    saved_findings = []
     for gf in generated_findings:
         key = (gf["category"].lower().strip(), gf["title"].lower().strip())
-        if key in existing_map:
-            existing_f = existing_map[key]
-            # If finding is still pending, update confidence and evidence if richer
-            if existing_f.lawyer_decision == "pending":
-                if gf.get("ai_confidence"):
-                    existing_f.ai_confidence = gf["ai_confidence"]
-                if gf.get("evidence_snippet") and not existing_f.evidence_snippet:
-                    existing_f.evidence_snippet = gf["evidence_snippet"]
+        if key in preserved_map:
+            # Lawyer has already acted on this finding or created a custom observation
             continue
 
         new_f = ScrutinyFindingModel(

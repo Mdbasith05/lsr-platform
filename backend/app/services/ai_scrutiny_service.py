@@ -239,6 +239,13 @@ Respond in valid JSON format with a list of 'findings'.
                     "raw_text": raw,
                 })
 
+        # Reclassify 'Chain of Title Break' to 'Missing Mandatory Document' if it is merely citing missing link deeds
+        if category == "Chain of Title Break":
+            break_keywords = ["deficit", "link deed", "traced", "continuity", "missing", "antecedent"]
+            if any(bk in title or bk in description for bk in break_keywords):
+                finding["category"] = "Missing Mandatory Document"
+                category = "Missing Mandatory Document"
+
         # Hallucination filter: If finding asserts agricultural survey demarcation or conversion,
         # but none of the documents contain any agricultural keywords, reject the finding.
         agri_keywords = ["agricultural", "agriculture", "conversion order", "dc conversion", "pahani", "rtc extract", "patta", "phodi"]
@@ -364,6 +371,7 @@ Respond in valid JSON format with a list of 'findings'.
 
         # -------------------------------------------------------------
         # Rule 2: 30-Year Chain Continuity Deficit Check
+        # (Correctly categorized as Missing Mandatory Document, NOT Chain of Title Break)
         # -------------------------------------------------------------
         has_mother_deed = any("mother" in d["file_name"].lower() or "prior" in d["doc_type"].lower() or "link" in d["file_name"].lower() for d in documents_with_pages)
         earliest_year = datetime.now().year
@@ -391,10 +399,10 @@ Respond in valid JSON format with a list of 'findings'.
             )
 
             findings.append({
-                "title": f"30-Year Chain Continuity Deficit ({span_years} Years Traced)",
-                "category": "Chain of Title Break",
+                "title": f"30-Year Chain Continuity Deficit ({span_years} Years Traced - Prior Link Deeds Required)",
+                "category": "Missing Mandatory Document",
                 "severity": "warning",
-                "description": f"Available registered deeds trace back {span_years} years (earliest deed: {earliest_year}). Statutory banking title scrutiny policy requires an unbroken 30-year chain of title. Certified copies of antecedent link deeds establishing flow of title from {current_year - 30} to {earliest_year} must be produced.",
+                "description": f"Available registered deeds trace back {span_years} years (earliest deed: {earliest_year}). Statutory banking title scrutiny policy requires an unbroken 30-year flow of title. Certified copies of antecedent link deeds establishing flow of title from {current_year - 30} to {earliest_year} must be produced.",
                 "source_doc_id": primary_doc["id"],
                 "source_doc_name": primary_doc["file_name"],
                 "page_number": 1,
@@ -409,7 +417,7 @@ Respond in valid JSON format with a list of 'findings'.
         # -------------------------------------------------------------
         # Rule 3: Schedule Boundary Verification (Grounded in Real Deed Text)
         # -------------------------------------------------------------
-        east_boundary = case_data.get("boundary_east", "")
+        east_boundary = (case_data.get("boundary_east") or "").strip()
 
         # Scan primary deed pages for genuine boundary recitals
         boundary_match = None
@@ -423,31 +431,70 @@ Respond in valid JSON format with a list of 'findings'.
                 break
 
         if boundary_match:
+            if east_boundary:
+                # Compare user schedule boundary with deed recital
+                norm_user = re.sub(r'[^a-zA-Z0-9]', '', east_boundary.lower())
+                norm_deed = re.sub(r'[^a-zA-Z0-9]', '', boundary_match.lower())
+                
+                is_match = (norm_user in norm_deed or norm_deed in norm_user)
+                if is_match:
+                    findings.append({
+                        "title": "Schedule Boundary Verification & Recital Match",
+                        "category": "Boundary Mismatch",
+                        "severity": "info",
+                        "description": f"Eastern boundary in case schedule ('{east_boundary}') conforms with registered deed recital on Page {boundary_page}: '{boundary_match}'.",
+                        "source_doc_id": primary_doc["id"],
+                        "source_doc_name": primary_doc["file_name"],
+                        "page_number": boundary_page,
+                        "evidence_snippet": boundary_match,
+                        "ai_confidence": 0.98,
+                        "suggested_query_text": None,
+                        "lawyer_decision": "pending",
+                        "lawyer_notes": "",
+                        "is_ai_generated": True,
+                    })
+                else:
+                    findings.append({
+                        "title": "Schedule Boundary Verification — Boundary Variance",
+                        "category": "Boundary Mismatch",
+                        "severity": "warning",
+                        "description": f"Schedule specifies Eastern boundary as '{east_boundary}', but deed recital on Page {boundary_page} records: '{boundary_match}'. Advocate verification against approved layout sanction plan or site map recommended.",
+                        "source_doc_id": primary_doc["id"],
+                        "source_doc_name": primary_doc["file_name"],
+                        "page_number": boundary_page,
+                        "evidence_snippet": boundary_match,
+                        "ai_confidence": 0.92,
+                        "suggested_query_text": "Borrower to furnish Approved Layout Sanction Plan or Site Map establishing boundary demarcation.",
+                        "lawyer_decision": "pending",
+                        "lawyer_notes": "",
+                        "is_ai_generated": True,
+                    })
+            else:
+                findings.append({
+                    "title": "Schedule Boundary Verification — Deed Recital Noted",
+                    "category": "Boundary Mismatch",
+                    "severity": "info",
+                    "description": f"Schedule East boundary was not specified during intake. Ingested deed records Eastern boundary on Page {boundary_page}: '{boundary_match}'.",
+                    "source_doc_id": primary_doc["id"],
+                    "source_doc_name": primary_doc["file_name"],
+                    "page_number": boundary_page,
+                    "evidence_snippet": boundary_match,
+                    "ai_confidence": 0.95,
+                    "suggested_query_text": None,
+                    "lawyer_decision": "pending",
+                    "lawyer_notes": "",
+                    "is_ai_generated": True,
+                })
+        elif east_boundary:
             findings.append({
-                "title": "Schedule Boundary Verification & Recital Match",
-                "category": "Boundary Mismatch",
-                "severity": "warning",
-                "description": f"Schedule specifies Eastern boundary as '{east_boundary or 'Site No. 15'}'. Deed recital on Page {boundary_page} records: '{boundary_match}'. Advocate verification against approved layout sanction plan or site map recommended.",
-                "source_doc_id": primary_doc["id"],
-                "source_doc_name": primary_doc["file_name"],
-                "page_number": boundary_page,
-                "evidence_snippet": boundary_match,
-                "ai_confidence": 0.92,
-                "suggested_query_text": "Borrower to furnish Approved Layout Sanction Plan or Site Map establishing boundary demarcation.",
-                "lawyer_decision": "pending",
-                "lawyer_notes": "",
-                "is_ai_generated": True,
-            })
-        else:
-            findings.append({
-                "title": "Schedule Boundary Verification & Recital Match",
+                "title": "Schedule Boundary Verification — Recital Not Explicit in Ingested Deed",
                 "category": "Boundary Mismatch",
                 "severity": "info",
-                "description": f"Schedule Eastern boundary is specified as '{east_boundary or 'Site No. 15'}'. Ingested deed does not contain an explicit boundary schedule table. Verification of site plan and layout sanction advised.",
+                "description": f"Schedule Eastern boundary is specified as '{east_boundary}'. Ingested deed does not contain an explicit boundary schedule table. Verification of layout sanction plan advised.",
                 "source_doc_id": primary_doc["id"],
                 "source_doc_name": primary_doc["file_name"],
                 "page_number": 1,
-                "evidence_snippet": f"East boundary specified in case schedule: {east_boundary or 'Site No. 15'}.",
+                "evidence_snippet": f"East boundary specified in case schedule: '{east_boundary}'.",
                 "ai_confidence": 0.90,
                 "suggested_query_text": "Borrower to furnish Approved Layout Sanction Plan from Planning Authority establishing boundary demarcation.",
                 "lawyer_decision": "pending",

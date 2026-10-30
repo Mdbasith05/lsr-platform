@@ -104,14 +104,14 @@ const CaseContext = createContext<CaseContextType | undefined>(undefined);
 function purgeLegacyMockStorageOnce() {
   if (typeof window === "undefined") return;
   try {
-    const initialized = localStorage.getItem("lsr_clean_initial_v2");
+    const initialized = localStorage.getItem("lsr_clean_initial_v3");
     if (!initialized) {
       localStorage.removeItem("lsr_cases");
       localStorage.removeItem("lsr_documents");
       localStorage.removeItem("lsr_findings");
       localStorage.removeItem("lsr_queries");
       localStorage.removeItem("lsr_reports");
-      localStorage.setItem("lsr_clean_initial_v2", "true");
+      localStorage.setItem("lsr_clean_initial_v3", "true");
     }
   } catch {
     // Ignore localStorage access errors

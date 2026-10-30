@@ -55,8 +55,14 @@ class PdfService:
             text = page.get_text("text").strip()
 
             ocr_applied = False
-            # If native text extraction is minimal (< 50 chars), trigger OCR on the rendered page
-            if len(text) < 50 and ocr_engine is not None:
+            # Check text quality: evaluate total length, alphanumeric count, and word structure
+            alphanumeric_count = len(re.sub(r'[^a-zA-Z0-9]', '', text))
+            words = [w for w in text.split() if len(w) > 1 and any(c.isalnum() for c in w)]
+
+            # If native text extraction is minimal or unreadable (< 50 chars or < 25 alphanumeric chars or < 5 words), trigger RapidOCR
+            needs_ocr = (len(text) < 50 or alphanumeric_count < 25 or len(words) < 5)
+
+            if needs_ocr and ocr_engine is not None:
                 try:
                     # Render page at 150 DPI for optimal OCR recognition
                     pix = page.get_pixmap(dpi=150)
@@ -70,15 +76,18 @@ class PdfService:
                             ocr_applied = True
                             logger.info(f"[PdfService] Extracted {len(ocr_lines)} lines via OCR on page {page_num}.")
                     else:
-                        text = f"[Scanned Deed Page {page_num}: No legible text detected via OCR]"
+                        if len(text) < 20:
+                            text = f"[Scanned Deed Page {page_num}: No legible text detected via OCR]"
                         ocr_applied = True
                 except Exception as ocr_err:
                     logger.warning(f"[PdfService] OCR failed on page {page_num}: {ocr_err}")
-                    text = f"[Scanned Deed Page {page_num}: OCR processing error]"
+                    if len(text) < 20:
+                        text = f"[Scanned Deed Page {page_num}: OCR processing error]"
                     ocr_applied = True
-            elif len(text) < 50:
+            elif needs_ocr:
                 # OCR engine not available
-                text = f"[Scanned Deed Page {page_num}: High-resolution scan requiring manual advocate review]"
+                if len(text) < 20:
+                    text = f"[Scanned Deed Page {page_num}: High-resolution scan requiring manual advocate review]"
                 ocr_applied = False
 
             combined_text += f"\n--- PAGE {page_num} ---\n" + text
