@@ -27,6 +27,7 @@ import {
   requestAiScrutiny,
   fetchCasesFromBackend,
   fetchCaseByIdFromBackend,
+  fetchCaseFullDetailsFromBackend,
   createCaseOnBackend,
   updateCaseOnBackend,
   deleteCaseOnBackend,
@@ -217,21 +218,70 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     return cases.find((c) => c.id === caseId || c.caseNumber === caseId);
   };
 
-  // Rehydrate complete case details from PostgreSQL
+  // Rehydrate complete case details from PostgreSQL using single atomic round-trip
   const loadCaseDetails = useCallback(async (caseId: string) => {
     if (!caseId) return;
 
-    // Check if case is already in cases list or fetch it
-    let targetCase = cases.find((c) => c.id === caseId || c.caseNumber === caseId);
-    if (!targetCase && backendOnline) {
-      const caseRes = await fetchCaseByIdFromBackend(caseId);
-      if (caseRes.success && caseRes.data) {
-        targetCase = caseRes.data;
-        setCases((prev) => [caseRes.data!, ...prev.filter((c) => c.id !== caseRes.data!.id)]);
-      }
-    }
-
     if (backendOnline) {
+      // 1. Attempt high-performance single-roundtrip full fetch
+      const fullRes = await fetchCaseFullDetailsFromBackend(caseId);
+      if (fullRes.success && fullRes.data) {
+        const {
+          case: fetchedCase,
+          documents: fetchedDocs,
+          findings: fetchedFindings,
+          queries: fetchedQueries,
+          report: fetchedReport,
+        } = fullRes.data;
+        const resolvedId = fetchedCase.id;
+
+        // Atomically update cases
+        setCases((prev) => [
+          fetchedCase,
+          ...prev.filter(
+            (c) => c.id !== fetchedCase.id && c.caseNumber !== fetchedCase.caseNumber
+          ),
+        ]);
+
+        // Atomically update documents
+        setDocuments((prev) => [
+          ...fetchedDocs,
+          ...prev.filter((d) => d.caseId !== resolvedId && d.caseId !== caseId),
+        ]);
+
+        // Atomically update findings
+        setFindings((prev) => [
+          ...fetchedFindings,
+          ...prev.filter((f) => f.caseId !== resolvedId && f.caseId !== caseId),
+        ]);
+
+        // Atomically update queries
+        setQueries((prev) => [
+          ...fetchedQueries,
+          ...prev.filter((q) => q.caseId !== resolvedId && q.caseId !== caseId),
+        ]);
+
+        // Atomically update reports
+        if (fetchedReport) {
+          setReports((prev) => ({
+            ...prev,
+            [resolvedId]: fetchedReport,
+            [caseId]: fetchedReport,
+          }));
+        }
+        return;
+      }
+
+      // 2. Fallback to parallel individual endpoints if full endpoint fails
+      let targetCase = cases.find((c) => c.id === caseId || c.caseNumber === caseId);
+      if (!targetCase) {
+        const caseRes = await fetchCaseByIdFromBackend(caseId);
+        if (caseRes.success && caseRes.data) {
+          targetCase = caseRes.data;
+          setCases((prev) => [caseRes.data!, ...prev.filter((c) => c.id !== caseRes.data!.id)]);
+        }
+      }
+
       const resolvedId = targetCase?.id || caseId;
 
       // Parallel fetch documents, findings, queries, and report

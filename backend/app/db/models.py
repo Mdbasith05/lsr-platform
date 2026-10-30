@@ -42,16 +42,16 @@ class CaseModel(Base):
     __tablename__ = "cases"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    case_number = Column(String(100), nullable=False, unique=True)
-    lawyer_id = Column(String(36), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True)
+    case_number = Column(String(100), nullable=False, unique=True, index=True)
+    lawyer_id = Column(String(36), ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True, index=True)
     borrower_name = Column(String(255), nullable=False)
     co_borrower_name = Column(String(255), nullable=True)
     bank_name = Column(String(255), nullable=False)
     branch = Column(String(255), nullable=False)
     loan_amount = Column(String(100), nullable=False)
     loan_type = Column(String(255), nullable=False, default="Housing Loan / Mortgage Scrutiny")
-    status = Column(String(50), nullable=False, default="Intake")
-    created_at = Column(DateTime(timezone=True), default=utc_now)
+    status = Column(String(50), nullable=False, default="Intake", index=True)
+    created_at = Column(DateTime(timezone=True), default=utc_now, index=True)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     lawyer = relationship("ProfileModel", back_populates="cases")
@@ -66,7 +66,7 @@ class PropertyModel(Base):
     __tablename__ = "properties"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    case_id = Column(String(36), ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, unique=True)
+    case_id = Column(String(36), ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     property_type = Column(String(255), nullable=False, default="Residential Plot")
     property_address = Column(Text, nullable=False)
     survey_number = Column(String(100), nullable=False)
@@ -84,7 +84,7 @@ class DocumentModel(Base):
     __tablename__ = "documents"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    case_id = Column(String(36), ForeignKey("cases.id", ondelete="CASCADE"), nullable=False)
+    case_id = Column(String(36), ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
     file_name = Column(String(255), nullable=False)
     storage_path = Column(Text, nullable=False)
     doc_type = Column(String(255), nullable=False)
@@ -95,7 +95,7 @@ class DocumentModel(Base):
     file_size_bytes = Column(BigInteger, nullable=False, default=0)
     processing_status = Column(String(50), nullable=False, default="Uploaded")
     confidence_score = Column(Float, nullable=False, default=1.0)
-    uploaded_at = Column(DateTime(timezone=True), default=utc_now)
+    uploaded_at = Column(DateTime(timezone=True), default=utc_now, index=True)
 
     case = relationship("CaseModel", back_populates="documents")
     pages = relationship("DocumentPageModel", back_populates="document", cascade="all, delete-orphan")
@@ -106,7 +106,7 @@ class DocumentPageModel(Base):
     __tablename__ = "document_pages"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    document_id = Column(String(36), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    document_id = Column(String(36), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True)
     page_number = Column(Integer, nullable=False)
     raw_text = Column(Text, nullable=False)
     ocr_applied = Column(Boolean, nullable=False, default=False)
@@ -119,17 +119,17 @@ class ScrutinyFindingModel(Base):
     __tablename__ = "scrutiny_findings"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    case_id = Column(String(36), ForeignKey("cases.id", ondelete="CASCADE"), nullable=False)
+    case_id = Column(String(36), ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
     source_doc_id = Column(String(36), ForeignKey("documents.id", ondelete="SET NULL"), nullable=True)
     source_doc_name = Column(String(255), nullable=True)
     title = Column(String(255), nullable=False)
     category = Column(String(100), nullable=False)
-    severity = Column(String(50), nullable=False)
+    severity = Column(String(50), nullable=False, index=True)
     description = Column(Text, nullable=False)
     page_number = Column(Integer, nullable=False, default=1)
     evidence_snippet = Column(Text, nullable=True)
     ai_confidence = Column(Float, nullable=False, default=0.9)
-    lawyer_decision = Column(String(50), nullable=False, default="pending")
+    lawyer_decision = Column(String(50), nullable=False, default="pending", index=True)
     lawyer_notes = Column(Text, nullable=False, default="")
     suggested_query_text = Column(Text, nullable=True)
     is_ai_generated = Column(Boolean, nullable=False, default=True)
@@ -145,13 +145,13 @@ class CaseQueryModel(Base):
     __tablename__ = "case_queries"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    case_id = Column(String(36), ForeignKey("cases.id", ondelete="CASCADE"), nullable=False)
+    case_id = Column(String(36), ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, index=True)
     linked_finding_id = Column(String(36), ForeignKey("scrutiny_findings.id", ondelete="SET NULL"), nullable=True)
     query_code = Column(String(50), nullable=False)
     title = Column(String(255), nullable=False)
     draft_text = Column(Text, nullable=False)
     lawyer_approved_text = Column(Text, nullable=True)
-    status = Column(String(50), nullable=False, default="Draft")
+    status = Column(String(50), nullable=False, default="Draft", index=True)
     created_at = Column(DateTime(timezone=True), default=utc_now)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
@@ -163,7 +163,7 @@ class LSRReportModel(Base):
     __tablename__ = "lsr_reports"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    case_id = Column(String(36), ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, unique=True)
+    case_id = Column(String(36), ForeignKey("cases.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     report_ref_number = Column(String(100), nullable=False)
     report_date = Column(String(50), nullable=False)
     opinion_outcome = Column(String(100), nullable=False, default="Clear with Pre-Disbursement Conditions")

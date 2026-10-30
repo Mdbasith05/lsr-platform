@@ -236,6 +236,78 @@ export async function fetchCaseByIdFromBackend(caseId: string): Promise<ApiRespo
   }
 }
 
+export interface FullCaseDetails {
+  case: Case;
+  documents: CaseDocument[];
+  findings: ScrutinyFinding[];
+  queries: CaseQuery[];
+  report?: LSRReportData | null;
+}
+
+// In-flight request deduplication map to prevent redundant concurrent fetches
+const inflightCaseRequests = new Map<string, Promise<ApiResponse<FullCaseDetails>>>();
+
+/**
+ * High-performance composite case rehydration:
+ * Fetches case summary, documents, findings, queries, and LSR report in a single round-trip.
+ * In-flight requests are automatically deduplicated to prevent redundant network traffic.
+ */
+export async function fetchCaseFullDetailsFromBackend(
+  caseId: string
+): Promise<ApiResponse<FullCaseDetails>> {
+  if (inflightCaseRequests.has(caseId)) {
+    return inflightCaseRequests.get(caseId)!;
+  }
+
+  const promise = (async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(
+        `${API_BASE_URL}/api/v1/cases/${encodeURIComponent(caseId)}/full`,
+        {
+          method: "GET",
+          headers,
+        }
+      );
+
+      if (!res.ok) {
+        return {
+          success: false,
+          error: `Failed to fetch complete case details (HTTP ${res.status})`,
+        };
+      }
+
+      const data = await res.json();
+      const rawDocs = data.documents || [];
+      const docs: CaseDocument[] = rawDocs.map((d: Record<string, unknown>) => ({
+        ...d,
+        fileUrl: d.fileUrl ? `${API_BASE_URL}${d.fileUrl}` : undefined,
+      }));
+
+      return {
+        success: true,
+        data: {
+          case: data.case,
+          documents: docs,
+          findings: data.findings || [],
+          queries: data.queries || [],
+          report: data.report || null,
+        },
+      };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Error fetching full case details",
+      };
+    } finally {
+      inflightCaseRequests.delete(caseId);
+    }
+  })();
+
+  inflightCaseRequests.set(caseId, promise);
+  return promise;
+}
+
 /**
  * Create a new scrutiny case on the backend.
  */

@@ -52,11 +52,26 @@ class AiScrutinyService:
         Runs legal scrutiny on extracted document pages using Google Gemini,
         with deterministic rule-based verification fallback.
         """
-        # Format the corpus of deeds
+        # Format the corpus of deeds with smart page budgeting for large deeds
         deeds_corpus = []
         for doc in documents_with_pages:
             doc_text = f"\n=== DOCUMENT: {doc['file_name']} (Type: {doc['doc_type']}, Reg: {doc.get('registration_number', 'N/A')}) ===\n"
-            for page in doc.get("pages", []):
+            pages = doc.get("pages", [])
+            total_pages = len(pages)
+
+            if total_pages <= 20:
+                selected_pages = pages
+            else:
+                # Include first 8 pages, last 5 pages, and any page containing key scrutiny markers
+                lead_pages = pages[:8]
+                tail_pages = pages[-5:]
+                middle_pages = pages[8:-5]
+
+                keywords = ("schedule", "boundary", "north", "south", "east", "west", "survey", "encumbrance", "mortgage", "charge", "condition", "khata")
+                key_middle = [p for p in middle_pages if any(kw in p.get("raw_text", "").lower() for kw in keywords)]
+                selected_pages = lead_pages + key_middle[:7] + tail_pages
+
+            for page in selected_pages:
                 doc_text += f"\n[Page {page['page_number']}]\n{page['raw_text']}\n"
             deeds_corpus.append(doc_text)
 
@@ -137,7 +152,16 @@ Respond in valid JSON format with a list of 'findings'.
                 findings = data.get("findings", data if isinstance(data, list) else [])
                 results = []
                 for idx, f in enumerate(findings):
-                    matched_doc = next((d for d in documents_with_pages if d["file_name"] == f.get("source_doc_name")), None)
+                    # Robust document matching: exact or substring match
+                    given_doc_name = (f.get("source_doc_name") or "").strip()
+                    matched_doc = next((d for d in documents_with_pages if d["file_name"].lower() == given_doc_name.lower()), None)
+                    if not matched_doc and given_doc_name and documents_with_pages:
+                        matched_doc = next((d for d in documents_with_pages if given_doc_name.lower() in d["file_name"].lower() or d["file_name"].lower() in given_doc_name.lower()), None)
+
+                    target_doc = matched_doc or (documents_with_pages[0] if documents_with_pages else None)
+                    target_doc_id = target_doc["id"] if target_doc else "doc-general"
+                    target_doc_name = target_doc["file_name"] if target_doc else (given_doc_name or "Property Dossier")
+
                     raw_cat = f.get("category", "Chain of Title Break")
                     cat = raw_cat if raw_cat in VALID_CATEGORIES else "Chain of Title Break"
                     raw_sev = (f.get("severity") or "warning").lower()
@@ -149,14 +173,20 @@ Respond in valid JSON format with a list of 'findings'.
                     except Exception:
                         conf = 0.95
 
+                    # Clamp page number to valid positive integer
+                    try:
+                        page_num = max(1, int(f.get("page_number") or 1))
+                    except Exception:
+                        page_num = 1
+
                     results.append({
                         "title": f.get("title", f"Discrepancy #{idx+1}"),
                         "category": cat,
                         "severity": sev,
                         "description": f.get("description", ""),
-                        "source_doc_id": matched_doc["id"] if matched_doc else (documents_with_pages[0]["id"] if documents_with_pages else None),
-                        "source_doc_name": f.get("source_doc_name", documents_with_pages[0]["file_name"] if documents_with_pages else "Document.pdf"),
-                        "page_number": int(f.get("page_number") or 1),
+                        "source_doc_id": target_doc_id,
+                        "source_doc_name": target_doc_name,
+                        "page_number": page_num,
                         "evidence_snippet": f.get("evidence_snippet", ""),
                         "ai_confidence": conf,
                         "suggested_query_text": f.get("suggested_query_text", ""),

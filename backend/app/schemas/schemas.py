@@ -236,3 +236,14 @@ class ReportResponse(BaseModel):
     generalObservations: str
     isSigned: bool
     signedAt: Optional[str] = None
+
+
+# ------------------------------------------------------------------------------
+# Composite Full Case Details (High-Performance Single-Roundtrip Hydration)
+# ------------------------------------------------------------------------------
+class CaseFullDetailsResponse(BaseModel):
+    case: CaseSummary
+    documents: List[DocumentResponse] = Field(default_factory=list)
+    findings: List[FindingResponse] = Field(default_factory=list)
+    queries: List[QueryResponse] = Field(default_factory=list)
+    report: Optional[ReportResponse] = None

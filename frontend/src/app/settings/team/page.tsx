@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { AuthenticatedShell } from "@/components/layout/authenticated-shell";
 import {
@@ -23,33 +23,49 @@ interface TeamMember {
   canSignReports: boolean;
 }
 
+const defaultMembers: TeamMember[] = [
+  {
+    id: "mem-1",
+    name: "Adv. K. R. Sreenivasan",
+    email: "sreenivasan.legal@lsr-platform.local",
+    role: "Senior Empaneled Advocate",
+    status: "Active",
+    canSignReports: true,
+  },
+  {
+    id: "mem-2",
+    name: "Adv. Lakshmi Narayanan",
+    email: "lakshmi.narayanan@lsr-platform.local",
+    role: "Associate Advocate",
+    status: "Active",
+    canSignReports: false,
+  },
+  {
+    id: "mem-3",
+    name: "Rahul V. Deshpande",
+    email: "rahul.paralegal@lsr-platform.local",
+    role: "Legal Assistant",
+    status: "Active",
+    canSignReports: false,
+  },
+];
+
 export default function SettingsTeamPage() {
-  const [members, setMembers] = useState<TeamMember[]>([
-    {
-      id: "mem-1",
-      name: "Adv. K. R. Sreenivasan",
-      email: "sreenivasan.legal@lsr-platform.local",
-      role: "Senior Empaneled Advocate",
-      status: "Active",
-      canSignReports: true,
-    },
-    {
-      id: "mem-2",
-      name: "Adv. Lakshmi Narayanan",
-      email: "lakshmi.narayanan@lsr-platform.local",
-      role: "Associate Advocate",
-      status: "Active",
-      canSignReports: false,
-    },
-    {
-      id: "mem-3",
-      name: "Rahul V. Deshpande",
-      email: "rahul.paralegal@lsr-platform.local",
-      role: "Legal Assistant",
-      status: "Active",
-      canSignReports: false,
-    },
-  ]);
+  const [members, setMembers] = useState<TeamMember[]>(defaultMembers);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("lsr_chamber_team");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMembers(parsed);
+        }
+      }
+    } catch {
+      // Ignore localStorage access errors
+    }
+  }, []);
 
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [newName, setNewName] = useState("");
@@ -69,7 +85,13 @@ export default function SettingsTeamPage() {
       canSignReports: false,
     };
 
-    setMembers([...members, newMem]);
+    const updated = [...members, newMem];
+    setMembers(updated);
+    try {
+      localStorage.setItem("lsr_chamber_team", JSON.stringify(updated));
+    } catch {
+      // Ignore localStorage write error
+    }
     setNewName("");
     setNewEmail("");
     setShowInviteModal(false);

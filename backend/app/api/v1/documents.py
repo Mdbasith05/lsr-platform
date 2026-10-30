@@ -3,6 +3,7 @@ import re
 from typing import List, Optional
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response, status
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import CaseModel, DocumentModel, DocumentPageModel
@@ -94,9 +95,11 @@ async def upload_document(
     # Save to storage (Supabase / local disk) with path traversal defenses
     storage_path = storage_service.save_document_file(case.id, doc_id, file.filename or "document.pdf", file_bytes)
 
-    # PyMuPDF page-level extraction & OCR
+    # PyMuPDF page-level extraction & OCR offloaded to worker threadpool
     try:
-        page_count, pages_data, metadata = pdf_service.extract_pages_and_metadata(file_bytes)
+        page_count, pages_data, metadata = await run_in_threadpool(
+            pdf_service.extract_pages_and_metadata, file_bytes
+        )
     except Exception as e:
         page_count = 1
         pages_data = [{"page_number": 1, "raw_text": f"Extracted deed: {file.filename}", "ocr_applied": False}]

@@ -56,10 +56,20 @@ elif raw_db_url.startswith("postgresql") or raw_db_url.startswith("postgres"):
 else:
     raise ValueError(f"Unsupported database scheme in DATABASE_URL: {raw_db_url[:20]}...")
 
+engine_kwargs = {
+    "connect_args": connect_args,
+    "pool_pre_ping": True,
+}
+if DB_TYPE == "postgresql":
+    engine_kwargs.update({
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_recycle": 300,
+    })
+
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args=connect_args,
-    pool_pre_ping=True,
+    **engine_kwargs,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -1,8 +1,9 @@
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload
 from app.db.session import get_db
 from app.db.models import (
     CaseModel,
@@ -13,32 +14,54 @@ from app.db.models import (
     LSRReportModel,
     ProfileModel,
 )
-from app.schemas.schemas import CaseCreate, CaseUpdate, CaseSummary, BoundariesSchema
+from app.schemas.schemas import (
+    CaseCreate,
+    CaseUpdate,
+    CaseSummary,
+    BoundariesSchema,
+    CaseFullDetailsResponse,
+    DocumentResponse,
+    FindingResponse,
+    QueryResponse,
+    ReportResponse,
+)
+from app.api.v1.documents import serialize_document
+from app.api.v1.scrutiny import serialize_finding
+from app.api.v1.queries import serialize_query
+from app.api.v1.reports import serialize_report
 from app.core.security import get_current_user_stub, AuthenticatedUser
 from app.services.storage_service import storage_service
 
 router = APIRouter(tags=["Cases"])
 
 
-def serialize_case(c: CaseModel, db: Session) -> CaseSummary:
+def serialize_case(c: CaseModel, db: Session, counts_cache: Optional[Dict[str, Any]] = None) -> CaseSummary:
     prop = c.property
-    doc_count = db.query(DocumentModel).filter(DocumentModel.case_id == c.id).count()
-    query_count = db.query(CaseQueryModel).filter(CaseQueryModel.case_id == c.id, CaseQueryModel.status != "Resolved").count()
 
-    critical_count = db.query(ScrutinyFindingModel).filter(
-        ScrutinyFindingModel.case_id == c.id,
-        ScrutinyFindingModel.severity == "critical",
-        ScrutinyFindingModel.lawyer_decision == "pending"
-    ).count()
-    warning_count = db.query(ScrutinyFindingModel).filter(
-        ScrutinyFindingModel.case_id == c.id,
-        ScrutinyFindingModel.severity == "warning",
-        ScrutinyFindingModel.lawyer_decision == "pending"
-    ).count()
-    info_count = db.query(ScrutinyFindingModel).filter(
-        ScrutinyFindingModel.case_id == c.id,
-        ScrutinyFindingModel.severity == "info"
-    ).count()
+    if counts_cache and c.id in counts_cache:
+        cached = counts_cache[c.id]
+        doc_count = cached["doc_count"]
+        query_count = cached["query_count"]
+        findings_count = cached["findings_count"]
+    else:
+        doc_count = db.query(DocumentModel).filter(DocumentModel.case_id == c.id).count()
+        query_count = db.query(CaseQueryModel).filter(CaseQueryModel.case_id == c.id, CaseQueryModel.status != "Resolved").count()
+
+        critical_count = db.query(ScrutinyFindingModel).filter(
+            ScrutinyFindingModel.case_id == c.id,
+            ScrutinyFindingModel.severity == "critical",
+            ScrutinyFindingModel.lawyer_decision == "pending"
+        ).count()
+        warning_count = db.query(ScrutinyFindingModel).filter(
+            ScrutinyFindingModel.case_id == c.id,
+            ScrutinyFindingModel.severity == "warning",
+            ScrutinyFindingModel.lawyer_decision == "pending"
+        ).count()
+        info_count = db.query(ScrutinyFindingModel).filter(
+            ScrutinyFindingModel.case_id == c.id,
+            ScrutinyFindingModel.severity == "info"
+        ).count()
+        findings_count = {"critical": critical_count, "warning": warning_count, "info": info_count}
 
     boundaries = BoundariesSchema(
         north=prop.boundary_north or "" if prop else "",
@@ -69,7 +92,7 @@ def serialize_case(c: CaseModel, db: Session) -> CaseSummary:
         updatedAt=c.updated_at.isoformat() if c.updated_at else datetime.now(timezone.utc).isoformat(),
         documentCount=doc_count,
         openQueriesCount=query_count,
-        findingsCount={"critical": critical_count, "warning": warning_count, "info": info_count},
+        findingsCount=findings_count,
     )
 
 
@@ -90,14 +113,72 @@ def list_cases(
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(get_current_user_stub),
 ):
-    query = db.query(CaseModel).filter(CaseModel.lawyer_id == user.user_id)
+    query = db.query(CaseModel).filter(CaseModel.lawyer_id == user.user_id).options(
+        joinedload(CaseModel.property),
+        joinedload(CaseModel.lawyer),
+    )
     if status_filter and status_filter != "All":
         query = query.filter(CaseModel.status == status_filter)
     if bank_filter and bank_filter != "All":
         query = query.filter(CaseModel.bank_name == bank_filter)
 
     cases = query.order_by(CaseModel.created_at.desc()).all()
-    return [serialize_case(c, db) for c in cases]
+    if not cases:
+        return []
+
+    # High-performance bulk count aggregation (eliminates N+1 query pattern)
+    case_ids = [c.id for c in cases]
+
+    # 1. Bulk document counts
+    doc_counts_raw = db.query(DocumentModel.case_id, func.count(DocumentModel.id)).filter(
+        DocumentModel.case_id.in_(case_ids)
+    ).group_by(DocumentModel.case_id).all()
+    doc_counts_map = dict(doc_counts_raw)
+
+    # 2. Bulk open queries counts
+    query_counts_raw = db.query(CaseQueryModel.case_id, func.count(CaseQueryModel.id)).filter(
+        CaseQueryModel.case_id.in_(case_ids),
+        CaseQueryModel.status != "Resolved"
+    ).group_by(CaseQueryModel.case_id).all()
+    query_counts_map = dict(query_counts_raw)
+
+    # 3. Bulk findings counts by severity & lawyer_decision
+    finding_counts_raw = db.query(
+        ScrutinyFindingModel.case_id,
+        ScrutinyFindingModel.severity,
+        ScrutinyFindingModel.lawyer_decision,
+        func.count(ScrutinyFindingModel.id)
+    ).filter(
+        ScrutinyFindingModel.case_id.in_(case_ids)
+    ).group_by(
+        ScrutinyFindingModel.case_id,
+        ScrutinyFindingModel.severity,
+        ScrutinyFindingModel.lawyer_decision
+    ).all()
+
+    findings_map: Dict[str, Dict[str, int]] = {}
+    for cid in case_ids:
+        findings_map[cid] = {"critical": 0, "warning": 0, "info": 0}
+
+    for cid, sev, decision, cnt in finding_counts_raw:
+        if cid in findings_map:
+            if sev == "critical" and decision == "pending":
+                findings_map[cid]["critical"] += cnt
+            elif sev == "warning" and decision == "pending":
+                findings_map[cid]["warning"] += cnt
+            elif sev == "info":
+                findings_map[cid]["info"] += cnt
+
+    counts_cache = {
+        cid: {
+            "doc_count": doc_counts_map.get(cid, 0),
+            "query_count": query_counts_map.get(cid, 0),
+            "findings_count": findings_map.get(cid, {"critical": 0, "warning": 0, "info": 0}),
+        }
+        for cid in case_ids
+    }
+
+    return [serialize_case(c, db, counts_cache=counts_cache) for c in cases]
 
 
 @router.post("", response_model=CaseSummary, status_code=status.HTTP_201_CREATED)
@@ -199,6 +280,45 @@ def get_case(
 ):
     c = get_authorized_case(case_id, user.user_id, db)
     return serialize_case(c, db)
+
+
+@router.get("/{case_id}/full", response_model=CaseFullDetailsResponse)
+def get_case_full_details(
+    case_id: str,
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(get_current_user_stub),
+):
+    """
+    Returns full case summary, documents, findings, queries, and LSR report
+    in a single atomic database trip, eliminating multiple redundant round-trips.
+    """
+    c = get_authorized_case(case_id, user.user_id, db)
+    case_summary = serialize_case(c, db)
+
+    # Documents
+    docs = db.query(DocumentModel).filter(DocumentModel.case_id == c.id).order_by(DocumentModel.uploaded_at.desc()).all()
+    serialized_docs = [serialize_document(d, db) for d in docs]
+
+    # Findings
+    findings = db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == c.id).order_by(ScrutinyFindingModel.created_at.desc()).all()
+    serialized_findings = [serialize_finding(f) for f in findings]
+
+    # Queries
+    queries = db.query(CaseQueryModel).filter(CaseQueryModel.case_id == c.id).order_by(CaseQueryModel.created_at.desc()).all()
+    serialized_queries = [serialize_query(q, db) for q in queries]
+
+    # Report
+    serialized_report = None
+    if c.report:
+        serialized_report = serialize_report(c.report, c)
+
+    return CaseFullDetailsResponse(
+        case=case_summary,
+        documents=serialized_docs,
+        findings=serialized_findings,
+        queries=serialized_queries,
+        report=serialized_report,
+    )
 
 
 @router.patch("/{case_id}", response_model=CaseSummary)

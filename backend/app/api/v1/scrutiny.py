@@ -81,12 +81,25 @@ def run_ai_scrutiny(
     # Execute AI Analysis
     generated_findings = ai_scrutiny_service.analyze_case_documents(case_dict, docs_payload)
 
-    # Persist findings (avoid duplicates with same title)
-    existing_titles = {f.title for f in db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == case.id).all()}
+    # Persist findings with intelligent deduplication:
+    # Match by normalized (category, title) to prevent duplicates while updating confidence/details on pending items
+    existing_findings = db.query(ScrutinyFindingModel).filter(ScrutinyFindingModel.case_id == case.id).all()
+    existing_map = {
+        (f.category.lower().strip(), f.title.lower().strip()): f
+        for f in existing_findings
+    }
     saved_findings = []
 
     for gf in generated_findings:
-        if gf["title"] in existing_titles:
+        key = (gf["category"].lower().strip(), gf["title"].lower().strip())
+        if key in existing_map:
+            existing_f = existing_map[key]
+            # If finding is still pending, update confidence and evidence if richer
+            if existing_f.lawyer_decision == "pending":
+                if gf.get("ai_confidence"):
+                    existing_f.ai_confidence = gf["ai_confidence"]
+                if gf.get("evidence_snippet") and not existing_f.evidence_snippet:
+                    existing_f.evidence_snippet = gf["evidence_snippet"]
             continue
 
         new_f = ScrutinyFindingModel(
