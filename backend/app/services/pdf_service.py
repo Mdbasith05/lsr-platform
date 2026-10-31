@@ -109,8 +109,8 @@ class PdfService:
             "sub_registrar_office": None,
         }
 
-        # Look for Doc No / Registration patterns (e.g. KRI-1-08921-2016-17 or 8921/2016)
-        reg_match = re.search(r"(?:Document|Doc|Registration)\s*(?:No\.?|Number|#)?\s*[:\-]?\s*([A-Za-z0-9\-\/]{4,28})", text, re.IGNORECASE)
+        # Look for Doc No / Registration patterns (e.g. KRI-1-08921-2016-17, 1842/2008, or Reg. No. BLR-1-9988-2026)
+        reg_match = re.search(r"\b(?:Document|Doc\.?|Registration|Reg\.?)\s*(?:No\.?|Number|#)\s*[:\-]?\s*([A-Za-z0-9\-\/]{3,28})", text, re.IGNORECASE)
         if reg_match:
             metadata["registration_number"] = reg_match.group(1).strip()
 
@@ -124,11 +124,11 @@ class PdfService:
                 metadata["doc_date"] = num_date.group(1).strip()
 
         # Look for Sub-Registrar
-        sro_pattern = r"Sub[- ]Registrar(?:\s+Office)?(?:\s+of\s+)?([A-Za-z\s,]+?)(?:\.|;|\n|,|$)"
+        sro_pattern = r"Sub[- ]Registrar(?:\s+Office)?(?:\s+of\s+)?(?:,\s*)?([A-Za-z\s]+?)(?:\.|\n|;|,|$)"
         sro_match = re.search(sro_pattern, text, re.IGNORECASE)
         if sro_match:
-            sro_name = sro_match.group(1).strip()
-            if len(sro_name) < 50:
+            sro_name = sro_match.group(1).strip().lstrip(",").strip()
+            if len(sro_name) < 50 and sro_name.lower() not in ["", "office"]:
                 metadata["sub_registrar_office"] = sro_name
         return metadata
 
